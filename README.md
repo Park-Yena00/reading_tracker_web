@@ -202,6 +202,10 @@ const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080';
 })
 ```
 
+### 사용자 정보
+아이디 : ' dpsk 1515 '
+비밀번호 : 'Ekrcu983!!'
+
 ## 프로젝트 구조
 
 ```
