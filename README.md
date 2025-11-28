@@ -146,7 +146,7 @@
 
 ### 프론트엔드 실행
 
-#### 방법 1: npm 스크립트 사용 (권장)
+#### npm 스크립트 사용
 
 ```bash
 # 의존성 설치 (최초 1회)
@@ -160,35 +160,6 @@ npm start
 
 개발 서버는 `http://localhost:8000`에서 실행됩니다.
 
-#### 방법 2: Python HTTP 서버 사용
-
-```bash
-# Python 3
-python -m http.server 8000
-
-# Python 2
-python -m SimpleHTTPServer 8000
-```
-
-#### 방법 3: 직접 파일 열기
-
-브라우저에서 `html/index.html` 파일을 직접 열어도 됩니다. (단, 일부 기능은 CORS 정책으로 인해 제한될 수 있습니다)
-
-### API 서버 주소 설정
-
-`js/api/config.js` 파일에서 백엔드 서버 주소를 설정할 수 있습니다:
-
-```javascript
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080';
-```
-
-또는 HTML 파일에서 전역 변수로 설정:
-
-```html
-<script>
-    window.API_BASE_URL = 'http://localhost:8080';
-</script>
-```
 
 ### CORS 설정 확인
 
@@ -203,8 +174,9 @@ const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080';
 ```
 
 ### 사용자 정보
-아이디 : ' dpsk 1515 '
+```아이디 : ' dpsk 1515 '
 비밀번호 : 'Ekrcu983!!'
+```
 
 ## 프로젝트 구조
 
