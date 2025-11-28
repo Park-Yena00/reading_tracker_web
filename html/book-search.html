@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도서 검색 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/input.css">
+    <link rel="stylesheet" href="../css/components/card.css">
+    <link rel="stylesheet" href="../css/components/loading.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/book-search.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <!-- 검색 영역 -->
+                <section class="search-section">
+                    <h1 class="page-title">도서 검색</h1>
+                    <form id="search-form" class="search-form">
+                        <div class="search-input-wrapper">
+                            <input 
+                                type="text" 
+                                id="search-query" 
+                                name="query" 
+                                class="input input-search" 
+                                placeholder="검색어를 입력하세요"
+                                required
+                                autocomplete="off"
+                            />
+                            <button type="submit" class="btn btn-primary btn-search">
+                                검색
+                            </button>
+                        </div>
+                        
+                        <div class="search-options">
+                            <div class="search-option-group">
+                                <label for="query-type" class="search-option-label">검색 타입:</label>
+                                <select id="query-type" name="queryType" class="select">
+                                    <option value="TITLE">도서명</option>
+                                    <option value="AUTHOR">저자명</option>
+                                    <option value="PUBLISHER">출판사명</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+                
+                <!-- 검색 결과 영역 -->
+                <section class="results-section" id="results-section" style="display: none;">
+                    <div class="results-header">
+                        <h2 class="results-title">
+                            검색 결과 <span id="results-count">0</span>개
+                        </h2>
+                    </div>
+                    
+                    <!-- 로딩 스피너 -->
+                    <div id="loading-spinner" class="spinner-overlay" style="display: none;">
+                        <div class="spinner spinner-large"></div>
+                    </div>
+                    
+                    <!-- 검색 결과 리스트 -->
+                    <div id="results-list" class="results-grid grid grid-cols-4">
+                        <!-- 도서 카드들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    
+                    <!-- 페이지네이션 -->
+                    <div id="pagination" class="pagination" style="display: none;">
+                        <!-- 페이지네이션 버튼들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    
+                    <!-- 빈 상태 메시지 -->
+                    <div id="empty-state" class="empty-state" style="display: none;">
+                        <p>검색 결과가 없습니다.</p>
+                        <p class="empty-state-hint">다른 검색어로 시도해보세요.</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/book-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    
+    <!-- 도서 검색 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/book-search-view.js"></script>
+</body>
+</html>
+

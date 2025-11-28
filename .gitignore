@@ -28,3 +28,6 @@ Thumbs.db
 *.temp
 *.log
 
+# Documentation (excluded from repository)
+docs/
+

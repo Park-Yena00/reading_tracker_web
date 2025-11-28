@@ -4,8 +4,8 @@
   "description": "독서 기록 사이트 - 병렬 독서자를 위한 독서 기록 서비스 웹 프론트엔드",
   "private": true,
   "scripts": {
-    "start": "npx http-server -p 5500 -o",
-    "dev": "npx http-server -p 5500 -o"
+    "start": "npx http-server -p 8000 -o -c-1",
+    "dev": "npx http-server -p 8000 -o -c-1"
   },
   "devDependencies": {
     "http-server": "^14.1.1"

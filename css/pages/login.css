@@ -1,0 +1,114 @@
+/* 로그인 페이지 스타일 */
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: var(--spacing-xl) 0;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-2xl);
+}
+
+.login-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.login-subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0 0 var(--spacing-2xl) 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-small);
+}
+
+.link-forgot {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-small);
+  transition: color var(--transition-fast);
+}
+
+.link-forgot:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.login-footer {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--color-border-default);
+  text-align: center;
+}
+
+.login-footer p {
+  margin: 0;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.link-register {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.link-register:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* 에러 메시지 */
+.error-message {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-danger);
+  font-size: var(--font-size-small);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .login-container {
+    min-height: auto;
+    padding: var(--spacing-lg) 0;
+  }
+
+  .login-card {
+    max-width: 100%;
+    padding: var(--spacing-xl);
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .login-title {
+    font-size: var(--font-size-h2);
+  }
+}
+

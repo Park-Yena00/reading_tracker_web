@@ -1,66 +1,178 @@
-# 독서 기록 사이트 (Reading Record Frontend)
+# 독서 기록 사이트 (Reading Tracker)
 
-병렬 독서자를 위한 독서 기록 서비스의 웹 프론트엔드 프로젝트입니다.
+병렬 독서자를 위한 독서 기록 및 관리 웹 애플리케이션입니다.
 
-## 프로젝트 개요
+## 프로젝트 소개
 
-이 프로젝트는 분산2_프로젝트(백엔드)와 연동하여 독서 기록을 관리하는 웹 애플리케이션입니다.
+독서 기록 사이트는 여러 책을 동시에 읽는 병렬 독서자를 위한 독서 관리 서비스입니다. 사용자는 자신이 읽고 있는 책들을 카테고리별로 관리하고, 독서 중 메모를 작성하여 독서 경험을 기록할 수 있습니다.
+
+### 주요 특징
+
+- 📚 **도서 검색 및 관리**: 알라딘 API를 통한 도서 검색 및 개인 서재 관리
+- 📝 **독서 메모 작성**: 독서 중 인사이트, 인용구, 질문 등을 태그와 함께 기록
+- 📊 **독서 진행률 추적**: 카테고리별 독서 진행 상황 관리 (읽을 예정, 읽는 중, 거의 다 읽음, 완독)
+- 📅 **오늘의 흐름**: 날짜별 독서 활동을 세션, 책별, 태그별로 그룹화하여 조회
+- 🏷️ **태그 기반 분류**: 메모를 유형(인사이트, 인용구, 요약 등)과 주제(인물, 줄거리, 주제 등)로 분류
 
 ## 기술 스택
 
 ### 프론트엔드
 - **HTML5**: 웹 페이지 구조 및 마크업
-- **CSS3**: 스타일링 및 레이아웃
-- **JavaScript (ES6+)**: 클라이언트 사이드 로직 및 API 통신 (Fetch API)
+- **CSS3**: 스타일링 및 레이아웃 (CSS Variables, Flexbox, Grid)
+- **JavaScript (ES6+)**: 
+  - 모듈 시스템 (ES Modules)
+  - Fetch API를 통한 RESTful API 통신
+  - Event-Driven 아키텍처
+  - 컴포넌트 기반 구조
 
-### 백엔드 (분산2_프로젝트)
-- **Spring Boot**: Java 기반 웹 애플리케이션 프레임워크
-- **Spring MVC**: 프론트엔드와 백엔드 간 통신 및 RESTful API 제공
-- **JPA**: Java Persistence API (데이터베이스 ORM)
-- **MySQL**: 관계형 데이터베이스 관리 시스템
+### 백엔드 연동
+- **Spring Boot**: RESTful API 서버
+- **MySQL**: 관계형 데이터베이스
+- **JWT**: 인증 및 인가
+
+## 주요 기능
+
+### 1. 사용자 인증
+- 회원가입 및 로그인
+- JWT 토큰 기반 인증
+- 자동 토큰 갱신
+
+### 2. 도서 검색 및 관리
+- 알라딘 API를 통한 도서 검색
+- 검색 결과에서 도서 상세 정보 확인
+- 개인 서재에 도서 추가 (카테고리별 필수 정보 입력)
+- 서재에서 도서 삭제 (연관 메모 자동 삭제)
+
+### 3. 내 서재 관리
+- 카테고리별 도서 분류:
+  - **읽을 예정 (ToRead)**: 읽고 싶은 책 목록
+  - **읽는 중 (Reading)**: 현재 읽고 있는 책
+  - **거의 다 읽음 (AlmostFinished)**: 거의 완독한 책
+  - **완독 (Finished)**: 읽기를 완료한 책
+- 카테고리별 필수 정보 관리:
+  - 읽을 예정: 기대감 (선택)
+  - 읽는 중: 독서 시작일, 현재 읽은 페이지, 구매/대여 여부
+  - 거의 다 읽음: 독서 시작일, 현재 읽은 페이지
+  - 완독: 독서 시작일, 독서 종료일, 평점, 후기
+- 독서 진행률 게이지 바 표시
+- 진행률에 따른 카테고리 자동 변경
+
+### 4. 독서 메모 작성
+- 페이지 번호와 함께 메모 작성
+- 태그 선택 (유형/주제 대분류)
+- 메모 내용 작성 및 저장
+- 메모 수정 및 삭제
+
+### 5. 오늘의 흐름
+- 날짜별 독서 활동 조회
+- 그룹화 방식:
+  - **세션별**: 책 선택 시점을 기준으로 그룹화
+  - **책별**: 책 단위로 그룹화
+  - **태그별**: 태그 단위로 그룹화 (태그 대분류 선택 가능)
+- 캘린더를 통한 날짜 선택
+- 메모 작성 날짜 표시
+
+## 화면 구성
+
+### 1. 로그인 화면 (`login.html`)
+- 사용자 로그인
+- 회원가입 페이지로 이동
+
+### 2. 회원가입 화면 (`register.html`)
+- 새 계정 생성
+- 로그인 페이지로 이동
+
+### 3. 도서 검색 화면 (`book-search.html`)
+- 도서명, 저자명, 출판사명으로 검색
+- 검색 결과를 카드 형태로 표시
+- 도서 카드 클릭 시 상세 정보 화면으로 이동
+
+### 4. 도서 상세 화면 (`book-detail.html`)
+- 도서 기본 정보 표시 (제목, 저자, 출판사, ISBN, 설명 등)
+- 서재에 추가하기 기능
+- 카테고리별 필수 정보 입력 모달
+- 서재에 있는 도서의 경우:
+  - 사용자가 입력한 추가 정보 표시
+  - 독서 진행률 게이지 바
+  - 읽은 페이지 수 직접 수정
+  - 카테고리 변경 (독서 시작하기 등)
+  - 도서 삭제
+
+### 5. 내 서재 화면 (`bookshelf.html`)
+- 카테고리별 책갈피 (탭) 표시
+- 선택한 카테고리의 도서 목록 표시
+- 도서 카드 클릭 시 상세 정보 화면으로 이동
+- 빈 카테고리 표시
+
+### 6. 오늘의 흐름 화면 (`flow.html`)
+- 좌측 사이드바:
+  - 현재 날짜 표시
+  - 캘린더 토글 (인라인 캘린더 표시)
+  - 그룹화 방식 선택 (세션/책별/태그별)
+  - 태그 대분류 선택 (태그별 모드에서만)
+- 우측 메인 영역:
+  - 메모 목록 표시 (바인더 노트 스타일)
+  - 메모 입력 영역:
+    - 페이지 번호 입력
+    - 태그 선택
+    - 메모 내용 입력
+    - 저장 버튼
+- 상단 헤더:
+  - 책 선택하기 버튼
+  - 홈으로 버튼
+
+### 7. 프로필 화면 (`profile.html`)
+- 사용자 정보 조회 및 수정
 
 ## 시작하기
 
 ### 사전 요구사항
 
 - Node.js 14.x 이상 (개발 서버 사용 시)
-- 또는 간단한 HTTP 서버 (예: Python의 http.server, PHP의 built-in server 등)
 - 백엔드 서버 (Spring Boot)가 `http://localhost:8080`에서 실행 중이어야 합니다
 
-### 설치 (선택사항)
+### 백엔드 서버 실행
 
-개발 서버를 사용하려면:
+1. **분산2_프로젝트** 디렉토리로 이동
+2. 백엔드 서버 실행:
+   ```bash
+   # Maven을 사용하는 경우
+   mvn spring-boot:run
+   
+   # 또는 IDE에서 ReadingTrackerApplication 실행
+   ```
 
-```bash
-# 의존성 설치
-npm install
-```
+3. 백엔드 서버가 `http://localhost:8080`에서 실행되는지 확인
 
-### 개발 서버 실행
+### 프론트엔드 실행
 
 #### 방법 1: npm 스크립트 사용 (권장)
 
 ```bash
+# 의존성 설치 (최초 1회)
+npm install
+
+# 개발 서버 실행
 npm run dev
 # 또는
 npm start
 ```
 
-개발 서버는 `http://localhost:5500`에서 실행됩니다.
+개발 서버는 `http://localhost:8000`에서 실행됩니다.
 
-#### 방법 2: 직접 파일 열기
-
-브라우저에서 `index.html` 파일을 직접 열어도 됩니다.
-
-#### 방법 3: Python HTTP 서버 사용
+#### 방법 2: Python HTTP 서버 사용
 
 ```bash
 # Python 3
-python -m http.server 5500
+python -m http.server 8000
 
 # Python 2
-python -m SimpleHTTPServer 5500
+python -m SimpleHTTPServer 8000
 ```
+
+#### 방법 3: 직접 파일 열기
+
+브라우저에서 `html/index.html` 파일을 직접 열어도 됩니다. (단, 일부 기능은 CORS 정책으로 인해 제한될 수 있습니다)
 
 ### API 서버 주소 설정
 
@@ -78,126 +190,56 @@ const API_BASE_URL = window.API_BASE_URL || 'http://localhost:8080';
 </script>
 ```
 
+### CORS 설정 확인
+
+백엔드 서버의 CORS 설정에 프론트엔드 도메인을 추가해야 합니다:
+
+```java
+// Spring Boot 예시
+@CrossOrigin(origins = {
+    "http://localhost:8000",  // 개발 환경
+    "http://127.0.0.1:8000"   // 개발 환경 (대체)
+})
+```
+
 ## 프로젝트 구조
 
 ```
 ├── css/
-│   └── style.css          # 전역 스타일
+│   ├── common/          # 공통 스타일 (variables, reset, layout)
+│   ├── components/      # 컴포넌트 스타일 (button, card, modal 등)
+│   └── pages/           # 페이지별 스타일
+├── html/                # HTML 페이지 파일
+│   ├── index.html       # 메인 페이지
+│   ├── login.html       # 로그인 페이지
+│   ├── register.html    # 회원가입 페이지
+│   ├── book-search.html # 도서 검색 페이지
+│   ├── book-detail.html # 도서 상세 페이지
+│   ├── bookshelf.html   # 내 서재 페이지
+│   ├── flow.html        # 오늘의 흐름 페이지
+│   └── profile.html     # 프로필 페이지
 ├── js/
-│   ├── api/
-│   │   ├── config.js      # API 설정
-│   │   └── client.js      # API 클라이언트 (Fetch API)
-│   └── main.js            # 메인 JavaScript 파일
-├── docs/
-│   └── BACKEND_INTEGRATION.md  # 백엔드 연동 가이드
-├── index.html             # 메인 HTML 파일
-├── ARCHITECTURE.md        # 프로젝트 아키텍처 문서
-├── package.json           # 프로젝트 의존성 (선택사항)
-└── README.md              # 프로젝트 문서
+│   ├── api/             # API 설정 및 클라이언트
+│   ├── components/      # 재사용 가능한 컴포넌트
+│   ├── constants/       # 상수 정의
+│   ├── services/        # API 서비스 레이어
+│   ├── state/           # 상태 관리
+│   ├── utils/           # 유틸리티 함수
+│   └── views/           # 페이지 뷰 로직
+├── docs/                # 문서
+│   ├── API_REFERENCE.md # API 명세서
+│   └── ...
+├── package.json         # 프로젝트 의존성
+└── README.md            # 프로젝트 문서
 ```
 
-## 백엔드 연동
+## 문서
 
-백엔드 서버는 기본적으로 `http://localhost:8080`에서 실행됩니다.
+프로젝트의 주요 문서들:
 
-프론트엔드에서 직접 백엔드 API를 호출하므로, 백엔드에서 CORS 설정이 필요합니다.
-
-자세한 내용은 [백엔드 연동 가이드](docs/BACKEND_INTEGRATION.md)를 참고하세요.
-
-## GitHub 저장소 연동
-
-### 1. GitHub에서 새 저장소 생성
-
-1. GitHub에 로그인
-2. 우측 상단의 "+" 버튼 클릭 → "New repository" 선택
-3. 저장소 이름 입력 (예: `reading-record-frontend`)
-4. Public 또는 Private 선택
-5. **"Initialize this repository with a README" 체크하지 않기** (이미 README가 있으므로)
-6. "Create repository" 클릭
-
-### 2. 로컬 저장소와 연결
-
-GitHub에서 생성한 저장소의 URL을 복사한 후, 다음 명령어를 실행하세요:
-
-```bash
-# 원격 저장소 추가 (YOUR_USERNAME과 YOUR_REPO_NAME을 실제 값으로 변경)
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-
-# 파일 추가
-git add .
-
-# 첫 커밋
-git commit -m "Initial commit: 독서 기록 사이트 프론트엔드 프로젝트"
-
-# 메인 브랜치로 푸시
-git branch -M main
-git push -u origin main
-```
-
-## 백엔드 연동 단계
-
-### 1단계: 백엔드 서버 확인
-
-- 백엔드 서버가 실행 중인지 확인
-- 백엔드 API 엔드포인트 문서 확인
-- CORS 설정이 프론트엔드 도메인을 허용하는지 확인
-
-### 2단계: API 서버 주소 설정
-
-`js/api/config.js` 파일에서 백엔드 서버 주소를 확인하거나 수정합니다.
-
-### 3단계: CORS 설정 확인
-
-백엔드에서 CORS를 허용하도록 설정되어 있어야 합니다:
-
-```java
-// Spring Boot 예시
-@CrossOrigin(origins = "http://localhost:5500")  // 프론트엔드 서버 주소
-```
-
-### 4단계: API 엔드포인트 구현
-
-백엔드 API 문서를 참고하여 필요한 API 호출 함수를 구현합니다.
-
-예시:
-```javascript
-// js/api/readingRecord.js
-async function getReadingRecords() {
-    try {
-        const records = await window.apiClient.get('/api/reading-records');
-        return records;
-    } catch (error) {
-        console.error('독서 기록 조회 실패:', error);
-        throw error;
-    }
-}
-
-async function createReadingRecord(data) {
-    try {
-        const result = await window.apiClient.post('/api/reading-records', data);
-        return result;
-    } catch (error) {
-        console.error('독서 기록 생성 실패:', error);
-        throw error;
-    }
-}
-```
-
-### 5단계: 인증 처리
-
-백엔드에서 JWT 토큰을 사용하는 경우:
-- 로그인 시 토큰을 받아 `localStorage`에 저장
-- `js/api/client.js`가 자동으로 토큰을 헤더에 추가
-
-### 6단계: 테스트
-
-- 개발 서버 실행: `npm run dev` 또는 브라우저에서 `index.html` 직접 열기
-- 브라우저 개발자 도구(F12)에서 API 호출 테스트
-- 네트워크 탭에서 요청/응답 확인
-
-자세한 내용은 [백엔드 연동 가이드](docs/BACKEND_INTEGRATION.md)를 참고하세요.
+- **[API_REFERENCE.md](docs/API_REFERENCE.md)**: 백엔드 API 명세서 - 모든 API 엔드포인트와 요청/응답 형식
+- **[WEB_UI_ARCHITECTURE.md](docs/features/WEB_UI_ARCHITECTURE.md)**: 웹 UI 아키텍처 문서 - 컴포넌트 구조, 이벤트 처리, 상태 관리
 
 ## 라이선스
 
 이 프로젝트는 교육 목적으로 개발되었습니다.
-

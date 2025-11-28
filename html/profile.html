@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로필 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/input.css">
+    <link rel="stylesheet" href="../css/components/loading.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/profile.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <div class="profile-header">
+                    <button class="btn btn-secondary btn-back" id="btn-back">
+                        홈 화면
+                    </button>
+                </div>
+                <div class="profile-container">
+                    <h1 class="page-title">프로필</h1>
+                    
+                    <!-- 로딩 스피너 -->
+                    <div id="loading-spinner" class="spinner-overlay" style="display: none;">
+                        <div class="spinner spinner-large"></div>
+                    </div>
+                    
+                    <!-- 프로필 정보 영역 -->
+                    <div id="profile-section" class="profile-section">
+                        <div class="profile-card card">
+                            <!-- 프로필 이미지 -->
+                            <div class="profile-avatar">
+                                <div class="avatar-placeholder">
+                                    <span class="avatar-text" id="avatar-text">?</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 프로필 정보 -->
+                            <div class="profile-info">
+                                <h2 class="profile-name" id="profile-name">-</h2>
+                                <p class="profile-email" id="profile-email">-</p>
+                                <p class="profile-login-id" id="profile-login-id">-</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 프로필 수정 폼 -->
+                        <div class="profile-edit-card card">
+                            <h2 class="section-title">프로필 수정</h2>
+                            
+                            <!-- 에러 메시지 영역 -->
+                            <div id="error-message" class="error-message" style="display: none;"></div>
+                            
+                            <!-- 성공 메시지 영역 -->
+                            <div id="success-message" class="success-message" style="display: none;"></div>
+                            
+                            <form id="profile-form" class="profile-form">
+                                <div class="form-group">
+                                    <label for="name" class="input-label required">이름</label>
+                                    <input 
+                                        type="text" 
+                                        id="name" 
+                                        name="name" 
+                                        class="input" 
+                                        placeholder="이름을 입력하세요"
+                                        required
+                                        autocomplete="name"
+                                    />
+                                    <span id="name-error" class="input-error"></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="email" class="input-label">이메일</label>
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        name="email" 
+                                        class="input" 
+                                        placeholder="이메일을 입력하세요"
+                                        autocomplete="email"
+                                    />
+                                    <span id="email-error" class="input-error"></span>
+                                    <span class="input-hint">이메일 변경 시 이메일 인증이 필요할 수 있습니다.</span>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary btn-large">
+                                        저장
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" id="btn-cancel">
+                                        취소
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- 계정 관리 섹션 -->
+                        <div class="profile-actions-card card">
+                            <h2 class="section-title">계정 관리</h2>
+                            
+                            <div class="action-list">
+                                <button class="action-item" id="btn-logout">
+                                    <span class="action-label">로그아웃</span>
+                                    <span class="action-icon">→</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 에러 섹션 -->
+                    <div id="error-section" class="error-section" style="display: none;">
+                        <div class="error-message">
+                            <h2>프로필 정보를 불러올 수 없습니다</h2>
+                            <p id="error-text"></p>
+                            <button class="btn btn-primary" onclick="window.location.reload()">
+                                새로고침
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    <script type="module" src="../js/utils/validators.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/user-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    
+    <!-- 프로필 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/profile-view.js"></script>
+    
+    <!-- 뒤로가기 버튼 즉시 등록 (모듈 로딩 전에도 작동) -->
+    <script>
+      // DOM이 준비되면 즉시 이벤트 리스너 등록
+      (function() {
+        function setupBackButton() {
+          const btnBack = document.getElementById('btn-back');
+          if (btnBack) {
+            btnBack.addEventListener('click', function() {
+              window.location.href = '/';
+            });
+          } else if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupBackButton);
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setupBackButton);
+        } else {
+          setupBackButton();
+        }
+      })();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 서재 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/card.css">
+    <link rel="stylesheet" href="../css/components/badge.css">
+    <link rel="stylesheet" href="../css/components/loading.css">
+    <link rel="stylesheet" href="../css/components/modal.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/bookshelf.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <div class="bookshelf-back-header">
+                    <button class="btn btn-secondary btn-back" id="btn-back">
+                        홈 화면
+                    </button>
+                </div>
+                <div class="bookshelf-header">
+                    <h1 class="page-title">내 서재</h1>
+                </div>
+                
+                <!-- 로딩 스피너 -->
+                <div id="loading-spinner" class="spinner-overlay" style="display: none;">
+                    <div class="spinner spinner-large"></div>
+                </div>
+                
+                <!-- 카테고리 책갈피 (상단) -->
+                <div id="category-sidebar" class="category-sidebar">
+                    <!-- 카테고리 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+                
+                <!-- 도서 목록 영역 (카테고리 책갈피 아래) -->
+                <div id="bookshelf-content" class="bookshelf-content">
+                    <div id="bookshelf-list" class="bookshelf-grid grid grid-cols-4">
+                        <!-- 도서 카드들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                    
+                    <!-- 빈 상태 메시지 -->
+                    <div id="empty-state" class="empty-state" style="display: none;">
+                        <p>서재가 비어있습니다.</p>
+                        <p class="empty-state-hint">도서 검색에서 원하는 책을 찾아 서재에 추가해보세요.</p>
+                        <a href="book-search.html" class="btn btn-primary">도서 검색하기</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    <script type="module" src="../js/utils/date-formatter.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    <script type="module" src="../js/state/book-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/book-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    <script type="module" src="../js/views/common/modal.js"></script>
+    
+    <!-- 서재 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/bookshelf-view.js"></script>
+    
+    <!-- 뒤로가기 버튼 즉시 등록 (모듈 로딩 전에도 작동) -->
+    <script>
+      // DOM이 준비되면 즉시 이벤트 리스너 등록
+      (function() {
+        function setupBackButton() {
+          const btnBack = document.getElementById('btn-back');
+          if (btnBack) {
+            btnBack.addEventListener('click', function() {
+              window.location.href = '/';
+            });
+          } else if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupBackButton);
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', setupBackButton);
+        } else {
+          setupBackButton();
+        }
+      })();
+    </script>
+</body>
+</html>
+

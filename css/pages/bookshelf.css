@@ -1,0 +1,205 @@
+/* 서재 페이지 스타일 */
+
+.bookshelf-back-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.bookshelf-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.page-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+/* 카테고리 책갈피 (상단) */
+.category-sidebar {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--color-border-default);
+  flex-wrap: wrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  position: relative;
+  bottom: -2px; /* border-bottom과 겹치도록 */
+}
+
+.category-tab:hover {
+  color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+}
+
+.category-tab.active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  border-bottom-color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+}
+
+/* 서재 컨텐츠 */
+.bookshelf-content {
+  min-height: 400px;
+}
+
+.bookshelf-grid {
+  gap: var(--spacing-lg);
+}
+
+/* 서재용 도서 카드 */
+.bookshelf-book-card {
+  position: relative;
+}
+
+.bookshelf-book-card-menu {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 10;
+}
+
+.btn-menu {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-md);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.btn-menu:hover {
+  background-color: var(--color-bg-primary);
+}
+
+.book-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--spacing-xs);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: opacity var(--transition-base),
+              visibility var(--transition-base),
+              transform var(--transition-base);
+  z-index: 20;
+}
+
+.book-menu-dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.book-menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-small);
+  color: var(--color-text-primary);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.book-menu-item:hover {
+  background-color: var(--color-bg-secondary);
+}
+
+.book-menu-item.danger {
+  color: var(--color-danger);
+}
+
+.book-menu-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.bookshelf-book-status {
+  margin-top: var(--spacing-sm);
+}
+
+.bookshelf-book-added-date {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  margin: var(--spacing-sm) 0;
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .bookshelf-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .bookshelf-stats {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .stat-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .bookshelf-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+

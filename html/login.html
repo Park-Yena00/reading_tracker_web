@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/input.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/login.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <div class="login-container">
+                    <div class="login-card">
+                        <h1 class="login-title">로그인</h1>
+                        <p class="login-subtitle">독서 기록 서비스에 오신 것을 환영합니다</p>
+                        
+                        <!-- 에러 메시지 영역 -->
+                        <div id="error-message" class="error-message" style="display: none;"></div>
+                        
+                        <!-- 로그인 폼 -->
+                        <form id="login-form" class="login-form">
+                            <div class="input-wrapper">
+                                <label for="loginId" class="input-label required">로그인 ID</label>
+                                <input 
+                                    type="text" 
+                                    id="loginId" 
+                                    name="loginId" 
+                                    class="input" 
+                                    placeholder="로그인 ID를 입력하세요"
+                                    required
+                                    autocomplete="username"
+                                />
+                                <span id="loginId-error" class="input-error"></span>
+                            </div>
+                            
+                            <div class="input-wrapper">
+                                <label for="password" class="input-label required">비밀번호</label>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    name="password" 
+                                    class="input" 
+                                    placeholder="비밀번호를 입력하세요"
+                                    required
+                                    autocomplete="current-password"
+                                />
+                                <span id="password-error" class="input-error"></span>
+                            </div>
+                            
+                            <div class="form-options">
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" id="rememberMe" name="rememberMe" class="checkbox" />
+                                    <span class="checkbox-label">로그인 상태 유지</span>
+                                </label>
+                                <a href="#" class="link-forgot">비밀번호 찾기</a>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-block btn-large">
+                                로그인
+                            </button>
+                        </form>
+                        
+                        <div class="login-footer">
+                            <p>아직 계정이 없으신가요? <a href="register.html" class="link-register">회원가입</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    <script type="module" src="../js/utils/auth-helper.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/auth-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    
+    <!-- 로그인 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/login-view.js"></script>
+</body>
+</html>
+

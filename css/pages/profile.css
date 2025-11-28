@@ -1,0 +1,229 @@
+/* 프로필 페이지 스타일 */
+
+.profile-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) 0;
+}
+
+.page-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-2xl) 0;
+  text-align: center;
+}
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-white);
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  box-shadow: var(--shadow-lg);
+}
+
+.avatar-text {
+  user-select: none;
+}
+
+.profile-info {
+  flex: 1;
+  text-align: left;
+}
+
+.profile-name {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.profile-email,
+.profile-login-id {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  margin: var(--spacing-xs) 0;
+}
+
+/* 프로필 수정 카드 */
+.profile-edit-card {
+  padding: var(--spacing-2xl);
+}
+
+.section-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  justify-content: flex-end;
+}
+
+/* 계정 관리 섹션 */
+.profile-actions-card {
+  padding: var(--spacing-xl);
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-align: left;
+  width: 100%;
+}
+
+.action-item:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+}
+
+.action-item.danger {
+  color: var(--color-danger);
+}
+
+.action-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--color-danger);
+}
+
+.action-label {
+  font-weight: var(--font-weight-medium);
+}
+
+.action-icon {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+}
+
+/* 에러/성공 메시지 */
+.error-message {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-danger);
+  font-size: var(--font-size-small);
+  margin-bottom: var(--spacing-lg);
+}
+
+.success-message {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-success);
+  font-size: var(--font-size-small);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 에러 섹션 */
+.error-section {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.error-section .error-message {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-lg);
+}
+
+.error-section .error-message h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.error-section .error-message p {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: var(--spacing-lg) 0;
+  }
+
+  .profile-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-info {
+    text-align: center;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+

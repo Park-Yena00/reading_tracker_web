@@ -1,0 +1,592 @@
+/* 오늘의 흐름 페이지 스타일 */
+
+.flow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.page-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.flow-header-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+/* 2컬럼 레이아웃 */
+.flow-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--spacing-2xl);
+  min-height: 600px;
+}
+
+/* 좌측 네비게이션/필터 패널 */
+.flow-sidebar {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  height: fit-content;
+  position: sticky;
+  top: var(--spacing-lg);
+}
+
+.date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.current-date {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  transition: transform var(--transition-fast);
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+}
+
+.grouping-section,
+.tag-category-section,
+.inline-calendar-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+/* 인라인 캘린더 */
+.inline-calendar-section {
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-md);
+}
+
+.inline-calendar-container {
+  width: 100%;
+}
+
+/* 인라인 캘린더 전용 스타일 (작은 크기) */
+.inline-calendar-container .calendar-header {
+  margin-bottom: var(--spacing-sm);
+}
+
+.inline-calendar-container .calendar-month-year {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+}
+
+.inline-calendar-container .calendar-nav-btn {
+  font-size: var(--font-size-lg);
+  padding: 2px var(--spacing-xs);
+}
+
+.inline-calendar-container .calendar-grid {
+  gap: 2px;
+}
+
+.inline-calendar-container .calendar-day-header {
+  font-size: var(--font-size-xs);
+  padding: 4px 2px;
+}
+
+.inline-calendar-container .calendar-day {
+  font-size: var(--font-size-xs);
+  min-height: 22px;
+  padding: 2px;
+}
+
+.inline-calendar-container .calendar-day.has-memo::after {
+  width: 4px;
+  height: 4px;
+  bottom: 2px;
+}
+
+.section-label {
+  display: block;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.grouping-toggle,
+.tag-category-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.grouping-btn,
+.tag-category-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.grouping-btn:hover,
+.tag-category-btn:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+}
+
+.grouping-btn.active,
+.tag-category-btn.active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+}
+
+/* 우측 메모 콘텐츠 영역 */
+.flow-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.selected-book-info {
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.selected-book-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.selected-book-author {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* 바인더 노트 스타일 */
+.binder-note {
+  background: #f9f9f9;
+  position: relative;
+  padding: var(--spacing-2xl);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  min-height: 800px;
+}
+
+/* 메모 디스플레이 영역 */
+.memo-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+  column-gap: var(--spacing-2xl);
+  padding: var(--spacing-2xl);
+}
+
+/* 메모 카드 */
+.memo-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.memo-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.memo-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.memo-card-meta {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.memo-card-time {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.memo-card-page {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-secondary);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+.memo-card-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.memo-card-content {
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin-bottom: var(--spacing-sm);
+}
+
+.memo-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.memo-tag {
+  font-size: var(--font-size-small);
+  color: var(--color-primary);
+  background-color: var(--color-primary-alpha);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+}
+
+/* 메모 입력 모듈 */
+.memo-editor {
+  padding: var(--spacing-2xl);
+}
+
+.book-selector-container {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.memo-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.memo-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.memo-page-input {
+  width: 150px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+}
+
+.memo-page-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-alpha);
+}
+
+.tag-chips-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.input-label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tag-chip {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-small);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tag-chip:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+}
+
+.tag-chip.selected {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.memo-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.memo-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  resize: vertical;
+  min-height: 120px;
+}
+
+.memo-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.memo-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  margin: var(--spacing-sm) 0;
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+/* 캘린더 모달 */
+.calendar-modal-content {
+  max-width: 500px;
+  width: 100%;
+}
+
+.calendar-container {
+  padding: var(--spacing-lg);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+}
+
+.calendar-month-year {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  font-size: var(--font-size-h3);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.calendar-nav-btn:hover {
+  color: var(--color-primary);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--spacing-xs);
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  padding: var(--spacing-sm);
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-small);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.calendar-day:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+}
+
+.calendar-day.other-month {
+  color: var(--color-text-muted);
+  background-color: var(--color-bg-secondary);
+}
+
+.calendar-day.today {
+  font-weight: var(--font-weight-bold);
+  border-color: var(--color-primary);
+}
+
+.calendar-day.has-memo::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background-color: #000;
+  border-radius: 50%;
+}
+
+.calendar-day.selected {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* 책 선택 모달 */
+.book-selector-list {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  min-height: 100px;
+}
+
+.book-selector-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.book-selector-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.book-selector-item:hover {
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.book-selector-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.book-selector-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.book-selector-author {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .flow-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .flow-sidebar {
+    position: static;
+  }
+  
+  .memo-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .flow-container {
+    gap: var(--spacing-lg);
+  }
+  
+  .binder-note {
+    padding: var(--spacing-lg);
+  }
+  
+  .calendar-grid {
+    gap: 2px;
+  }
+  
+  .calendar-day {
+    font-size: 0.75rem;
+  }
+}
+

@@ -12,9 +12,9 @@ function getHeaders() {
   };
   
   // 로컬 스토리지에서 토큰 가져오기
-  const token = localStorage.getItem('token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const accessToken = localStorage.getItem('accessToken');
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
   }
   
   return headers;
@@ -37,21 +37,30 @@ async function request(url, options = {}) {
   try {
     const response = await fetch(fullUrl, config);
     
-    // 401 인증 오류 처리
-    if (response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login.html';
-      throw new Error('인증이 필요합니다.');
-    }
-    
     // 응답이 JSON인지 확인
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || '요청에 실패했습니다.');
+      const responseData = await response.json();
+      
+      // ApiResponse<T> 형식 처리
+      if (responseData.ok === false) {
+        // 에러 응답 처리
+        const error = responseData.error || {};
+        const errorMessage = error.message || '요청에 실패했습니다.';
+        
+        // 401 인증 오류 처리
+        if (response.status === 401 || error.code === 'AUTHENTICATION_ERROR') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login.html';
+          throw new Error('인증이 필요합니다.');
+        }
+        
+        throw new Error(errorMessage);
       }
-      return data;
+      
+      // 성공 응답: data 필드 반환
+      return responseData.data;
     } else {
       if (!response.ok) {
         throw new Error('요청에 실패했습니다.');

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘의 흐름 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/card.css">
+    <link rel="stylesheet" href="../css/components/badge.css">
+    <link rel="stylesheet" href="../css/components/loading.css">
+    <link rel="stylesheet" href="../css/components/modal.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/flow.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <!-- 페이지 헤더 -->
+                <div class="flow-header">
+                    <h1 class="page-title">오늘의 흐름</h1>
+                    <div class="flow-header-actions">
+                        <button id="btn-select-book" class="btn btn-primary">
+                            책 선택하기
+                        </button>
+                        <a href="/" class="btn btn-secondary" id="btn-home">홈으로</a>
+                    </div>
+                </div>
+                
+                <!-- 로딩 스피너 -->
+                <div id="loading-spinner" class="spinner-overlay" style="display: none;">
+                    <div class="spinner spinner-large"></div>
+                </div>
+                
+                <!-- 2컬럼 레이아웃 -->
+                <div class="flow-container">
+                    <!-- 좌측 네비게이션/필터 패널 -->
+                    <aside id="flow-sidebar" class="flow-sidebar">
+                        <!-- 날짜 선택 헤더 -->
+                        <div class="date-header">
+                            <span id="current-date" class="current-date"></span>
+                            <button id="btn-calendar" class="btn-icon" aria-label="캘린더 열기">
+                                📅
+                            </button>
+                        </div>
+                        
+                        <!-- 그룹화 선택 -->
+                        <div class="grouping-section">
+                            <label class="section-label">그룹화 방식</label>
+                            <div id="grouping-toggle" class="grouping-toggle">
+                                <button class="grouping-btn active" data-grouping="SESSION">세션</button>
+                                <button class="grouping-btn" data-grouping="BOOK">책별</button>
+                                <button class="grouping-btn" data-grouping="TAG">태그별</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 태그 대분류 선택 (TAG 모드에서만 표시) -->
+                        <div id="tag-category-section" class="tag-category-section" style="display: none;">
+                            <label class="section-label">태그 대분류</label>
+                            <div id="tag-category-toggle" class="tag-category-toggle">
+                                <button class="tag-category-btn active" data-category="TYPE">유형</button>
+                                <button class="tag-category-btn" data-category="TOPIC">주제</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 인라인 캘린더 (토글 가능) -->
+                        <div id="inline-calendar-section" class="inline-calendar-section" style="display: none;">
+                            <div id="inline-calendar-container" class="inline-calendar-container">
+                                <!-- 캘린더가 여기에 동적으로 렌더링됩니다 -->
+                            </div>
+                        </div>
+                    </aside>
+                    
+                    <!-- 우측 메모 콘텐츠 영역 -->
+                    <div class="flow-content">
+                        <!-- 선택된 책 정보 (첫 메모 작성 시 또는 책 전환 시 표시) -->
+                        <div id="selected-book-info" class="selected-book-info" style="display: none;">
+                            <h2 id="selected-book-title" class="selected-book-title"></h2>
+                            <p id="selected-book-author" class="selected-book-author"></p>
+                        </div>
+                        
+                        <!-- 메모 디스플레이 영역 (바인더 노트 형식) -->
+                        <div id="memo-list" class="memo-list binder-note">
+                            <!-- 메모 카드들이 여기에 동적으로 추가됩니다 -->
+                        </div>
+                        
+                        <!-- 메모 입력 모듈 (바인더 노트 형식) -->
+                        <div id="memo-editor" class="memo-editor binder-note">
+                            <!-- 메모 입력 영역 (책 선택 후 활성화) -->
+                            <div id="memo-input-container" class="memo-input-container" style="display: none;">
+                                <!-- 페이지 번호 입력 -->
+                                <div class="memo-page-container">
+                                    <label for="memo-page-input" class="input-label">페이지 번호</label>
+                                    <input 
+                                        type="number" 
+                                        id="memo-page-input" 
+                                        class="memo-page-input" 
+                                        placeholder="페이지 번호를 입력하세요"
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                                
+                                <!-- 태그 선택 -->
+                                <div class="tag-chips-container">
+                                    <label class="input-label">태그 선택</label>
+                                    <div id="tag-chips" class="tag-chips">
+                                        <!-- 태그 칩들이 여기에 동적으로 추가됩니다 -->
+                                    </div>
+                                </div>
+                                
+                                <!-- 메모 본문 입력 -->
+                                <div class="memo-text-container">
+                                    <label for="memo-input" class="input-label">메모 내용</label>
+                                    <textarea 
+                                        id="memo-input" 
+                                        class="memo-input" 
+                                        placeholder="메모를 입력하세요..."
+                                        rows="6"
+                                    ></textarea>
+                                </div>
+                                
+                                <!-- 저장 버튼 -->
+                                <div class="memo-actions">
+                                    <button id="btn-save-memo" class="btn btn-primary">
+                                        저장
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- 빈 상태 메시지 -->
+                            <div id="empty-state" class="empty-state" style="display: none;">
+                                <p>메모가 없습니다.</p>
+                                <p class="empty-state-hint">책을 선택하고 메모를 작성해보세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- 캘린더 모달 -->
+    <div id="calendar-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content calendar-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">날짜 선택</h2>
+                <button class="modal-close" aria-label="닫기">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="calendar-container" class="calendar-container">
+                    <!-- 캘린더가 여기에 동적으로 렌더링됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 책 선택 모달 -->
+    <div id="book-selector-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">책 선택</h2>
+                <button class="modal-close" aria-label="닫기">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="book-selector-list" class="book-selector-list">
+                    <!-- 책 목록이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    <script type="module" src="../js/utils/date-formatter.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    <script type="module" src="../js/state/book-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/book-service.js"></script>
+    <script type="module" src="../js/services/memo-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    <script type="module" src="../js/views/common/modal.js"></script>
+    
+    <!-- 컴포넌트 -->
+    <script type="module" src="../js/components/calendar-modal.js"></script>
+    <script type="module" src="../js/components/memo-card.js"></script>
+    <script type="module" src="../js/components/memo-editor.js"></script>
+    <script type="module" src="../js/components/book-selector.js"></script>
+    
+    <!-- 오늘의 흐름 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/flow-view.js"></script>
+</body>
+</html>
+

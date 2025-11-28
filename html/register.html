@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - Reading Tracker</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" href="../css/common/variables.css">
+    <link rel="stylesheet" href="../css/common/reset.css">
+    <link rel="stylesheet" href="../css/common/layout.css">
+    <link rel="stylesheet" href="../css/common/header-footer.css">
+    
+    <!-- 컴포넌트 CSS -->
+    <link rel="stylesheet" href="../css/components/button.css">
+    <link rel="stylesheet" href="../css/components/input.css">
+    
+    <!-- 페이지 CSS -->
+    <link rel="stylesheet" href="../css/pages/register.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 헤더 -->
+        <div id="header"></div>
+        
+        <!-- 메인 콘텐츠 -->
+        <main class="page-main">
+            <div class="container">
+                <div class="register-container">
+                    <div class="register-card">
+                        <h1 class="register-title">회원가입</h1>
+                        <p class="register-subtitle">독서 기록 서비스에 오신 것을 환영합니다</p>
+                        
+                        <!-- 에러 메시지 영역 -->
+                        <div id="error-message" class="error-message" style="display: none;"></div>
+                        
+                        <!-- 회원가입 폼 -->
+                        <form id="register-form" class="register-form">
+                            <div class="input-wrapper">
+                                <label for="loginId" class="input-label required">로그인 ID</label>
+                                <div class="input-group">
+                                    <input 
+                                        type="text" 
+                                        id="loginId" 
+                                        name="loginId" 
+                                        class="input" 
+                                        placeholder="3자 이상 20자 이하 영문, 숫자, 언더스코어만 사용 가능"
+                                        required
+                                        autocomplete="username"
+                                    />
+                                    <button type="button" class="btn btn-secondary btn-check-duplicate" id="check-loginId">
+                                        중복 확인
+                                    </button>
+                                </div>
+                                <span id="loginId-error" class="input-error"></span>
+                                <span id="loginId-success" class="input-success" style="display: none;">✓ 사용 가능한 ID입니다</span>
+                            </div>
+                            
+                            <div class="input-wrapper">
+                                <label for="email" class="input-label required">이메일</label>
+                                <div class="input-group">
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        name="email" 
+                                        class="input" 
+                                        placeholder="이메일을 입력하세요"
+                                        required
+                                        autocomplete="email"
+                                    />
+                                    <button type="button" class="btn btn-secondary btn-check-duplicate" id="check-email">
+                                        중복 확인
+                                    </button>
+                                </div>
+                                <span id="email-error" class="input-error"></span>
+                                <span id="email-success" class="input-success" style="display: none;">✓ 사용 가능한 이메일입니다</span>
+                            </div>
+                            
+                            <div class="input-wrapper">
+                                <label for="name" class="input-label required">이름</label>
+                                <input 
+                                    type="text" 
+                                    id="name" 
+                                    name="name" 
+                                    class="input" 
+                                    placeholder="이름을 입력하세요"
+                                    required
+                                    autocomplete="name"
+                                />
+                                <span id="name-error" class="input-error"></span>
+                            </div>
+                            
+                            <div class="input-wrapper">
+                                <label for="password" class="input-label required">비밀번호</label>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    name="password" 
+                                    class="input" 
+                                    placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                                    required
+                                    autocomplete="new-password"
+                                />
+                                <span id="password-error" class="input-error"></span>
+                                <span id="password-hint" class="input-hint">영문, 숫자, 특수문자를 모두 포함하여 8자 이상 입력해주세요</span>
+                            </div>
+                            
+                            <div class="input-wrapper">
+                                <label for="confirmPassword" class="input-label required">비밀번호 확인</label>
+                                <input 
+                                    type="password" 
+                                    id="confirmPassword" 
+                                    name="confirmPassword" 
+                                    class="input" 
+                                    placeholder="비밀번호를 다시 입력하세요"
+                                    required
+                                    autocomplete="new-password"
+                                />
+                                <span id="confirmPassword-error" class="input-error"></span>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-block btn-large">
+                                회원가입
+                            </button>
+                        </form>
+                        
+                        <div class="register-footer">
+                            <p>이미 계정이 있으신가요? <a href="login.html" class="link-login">로그인</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- 푸터 -->
+        <div id="footer"></div>
+    </div>
+    
+    <!-- API 설정 -->
+    <script src="../js/api/config.js"></script>
+    
+    <!-- 공통 유틸리티 -->
+    <script type="module" src="../js/utils/event-bus.js"></script>
+    <script type="module" src="../js/utils/token-manager.js"></script>
+    <script type="module" src="../js/utils/validators.js"></script>
+    <script type="module" src="../js/utils/auth-helper.js"></script>
+    
+    <!-- 상태 관리 -->
+    <script type="module" src="../js/state/auth-state.js"></script>
+    
+    <!-- API 클라이언트 -->
+    <script type="module" src="../js/services/api-client.js"></script>
+    <script type="module" src="../js/services/auth-service.js"></script>
+    
+    <!-- 공통 컴포넌트 -->
+    <script type="module" src="../js/views/common/header.js"></script>
+    <script type="module" src="../js/views/common/footer.js"></script>
+    
+    <!-- 회원가입 페이지 뷰 -->
+    <script type="module" src="../js/views/pages/register-view.js"></script>
+</body>
+</html>
+

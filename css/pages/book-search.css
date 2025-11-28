@@ -1,0 +1,176 @@
+/* 도서 검색 페이지 스타일 */
+
+.search-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.page-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xl) 0;
+  text-align: center;
+}
+
+.search-form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.input-search {
+  flex: 1;
+  font-size: var(--font-size-body);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.btn-search {
+  padding: var(--spacing-md) var(--spacing-xl);
+  white-space: nowrap;
+  font-size: var(--font-size-body);
+}
+
+.search-options {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+}
+
+.search-option-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.search-option-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-small);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 검색 결과 섹션 */
+.results-section {
+  margin-top: var(--spacing-2xl);
+}
+
+.results-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.results-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.results-count {
+  color: var(--color-primary);
+}
+
+/* 검색 결과 그리드 */
+.results-grid {
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.empty-state p {
+  margin: var(--spacing-sm) 0;
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg) 0;
+}
+
+.pagination-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  border-color: var(--color-primary);
+}
+
+.pagination-btn.active {
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  border-color: var(--color-primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: var(--font-size-h2);
+  }
+
+  .search-input-wrapper {
+    flex-direction: column;
+  }
+
+  .btn-search {
+    width: 100%;
+  }
+
+  .search-options {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .results-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+

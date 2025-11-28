@@ -1,0 +1,209 @@
+/* 홈 페이지 스타일 */
+
+/* 히어로 섹션 (메인 배너) */
+.hero-section {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: var(--color-text-white);
+  padding: var(--spacing-2xl) 0;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-xl) 0;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-white);
+  margin: 0 0 var(--spacing-md) 0;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.hero-description {
+  font-size: var(--font-size-lg);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 var(--spacing-2xl) 0;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hero-actions .btn {
+  min-width: 180px;
+}
+
+/* 기능 섹션 */
+.features-section {
+  padding: var(--spacing-2xl) 0;
+  background-color: var(--color-bg-secondary);
+}
+
+.section-title {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-align: center;
+  margin: 0 0 var(--spacing-2xl) 0;
+}
+
+.features-grid {
+  gap: var(--spacing-xl);
+}
+
+.feature-card {
+  text-align: center;
+  padding: var(--spacing-xl);
+  transition: transform var(--transition-base),
+              box-shadow var(--transition-base);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.feature-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+  line-height: 1;
+}
+
+.feature-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.feature-description {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 사용 방법 섹션 */
+.how-to-section {
+  padding: var(--spacing-2xl) 0;
+  background-color: var(--color-bg-primary);
+}
+
+.steps-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-lg);
+  transition: transform var(--transition-base),
+              box-shadow var(--transition-base);
+}
+
+.step-item:hover {
+  transform: translateX(8px);
+  box-shadow: var(--shadow-md);
+}
+
+.step-number {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.step-description {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: var(--font-size-lg);
+  }
+
+  .hero-description {
+    font-size: var(--font-size-body);
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .section-title {
+    font-size: var(--font-size-h2);
+  }
+
+  .step-item {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .step-number {
+    margin: 0 auto;
+  }
+}
+
+
