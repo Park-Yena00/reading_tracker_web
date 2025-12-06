@@ -4,9 +4,48 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('독서 기록 사이트가 로드되었습니다.');
     
+    // Service Worker 등록
+    registerServiceWorker();
+    
     // 초기화 함수들
     initializeApp();
 });
+
+/**
+ * Service Worker 등록
+ */
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('Service Worker 등록 성공:', registration.scope);
+                
+                // 동기화 요청 등록
+                if ('sync' in registration) {
+                    // Background Sync 지원
+                    registration.sync.register('sync-memos')
+                        .then(() => {
+                            console.log('Background Sync 등록 성공');
+                        })
+                        .catch(error => {
+                            console.warn('Background Sync 등록 실패:', error);
+                        });
+                } else {
+                    // 폴백: online 이벤트 사용
+                    console.warn('Background Sync를 지원하지 않습니다. online 이벤트를 사용합니다.');
+                    window.addEventListener('online', () => {
+                        console.log('네트워크 연결 복구 (online 이벤트)');
+                        // 동기화는 NetworkMonitor에서 처리
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Service Worker 등록 실패:', error);
+            });
+    } else {
+        console.warn('Service Worker를 지원하지 않는 브라우저입니다.');
+    }
+}
 
 /**
  * 애플리케이션 초기화

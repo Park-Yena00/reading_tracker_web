@@ -51,6 +51,50 @@ export class MemoCard {
   }
 
   /**
+   * 동기화 상태 아이콘 반환
+   * @param {string} syncStatus - 동기화 상태
+   * @returns {string} 상태 아이콘
+   */
+  static getSyncStatusIcon(syncStatus) {
+    if (!syncStatus) return '';
+    
+    const statusIcons = {
+      'pending': '⏳',           // 대기 중
+      'syncing': '🔄',          // 동기화 중
+      'syncing_create': '🔄',   // 생성 동기화 중
+      'syncing_update': '🔄',   // 수정 동기화 중
+      'syncing_delete': '🔄',   // 삭제 동기화 중
+      'synced': '✓',            // 동기화 완료
+      'failed': '❌',           // 동기화 실패
+      'waiting': '⏸️'           // 대기 중 (다른 작업 완료 대기)
+    };
+    
+    return statusIcons[syncStatus] || '';
+  }
+
+  /**
+   * 동기화 상태 툴팁 텍스트 반환
+   * @param {string} syncStatus - 동기화 상태
+   * @returns {string} 툴팁 텍스트
+   */
+  static getSyncStatusTooltip(syncStatus) {
+    if (!syncStatus) return '';
+    
+    const statusTooltips = {
+      'pending': '동기화 대기 중',
+      'syncing': '동기화 중',
+      'syncing_create': '생성 동기화 중',
+      'syncing_update': '수정 동기화 중',
+      'syncing_delete': '삭제 동기화 중',
+      'synced': '동기화 완료',
+      'failed': '동기화 실패',
+      'waiting': '대기 중'
+    };
+    
+    return statusTooltips[syncStatus] || '';
+  }
+
+  /**
    * 메모 카드 HTML 렌더링
    * @param {Object} memo - 메모 데이터
    * @returns {string} HTML 문자열
@@ -73,13 +117,19 @@ export class MemoCard {
         })
       : '';
     
+    // 동기화 상태 아이콘 (syncStatus가 있고, synced가 아닐 때만 표시)
+    const syncStatusIcon = memo.syncStatus && memo.syncStatus !== 'synced'
+      ? `<span class="memo-sync-status" title="${this.getSyncStatusTooltip(memo.syncStatus)}" aria-label="${this.getSyncStatusTooltip(memo.syncStatus)}">${this.getSyncStatusIcon(memo.syncStatus)}</span>`
+      : '';
+    
     return `
-      <div class="memo-card" data-memo-id="${memo.id}">
+      <div class="memo-card" data-memo-id="${memo.id}" data-local-id="${memo.localId || ''}">
         ${tagsHtml ? `<div class="memo-card-tags">${tagsHtml}</div>` : ''}
         <div class="memo-card-header">
           <div class="memo-card-meta">
             <span class="memo-card-time">${this.escapeHtml(memoStartTime)}</span>
             ${memo.pageNumber ? `<span class="memo-card-page">p.${memo.pageNumber}</span>` : ''}
+            ${syncStatusIcon}
           </div>
           <div class="memo-card-actions">
             <button class="btn-icon memo-edit-btn" data-memo-id="${memo.id}" aria-label="수정">

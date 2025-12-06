@@ -424,6 +424,23 @@
   border-radius: var(--border-radius-sm);
 }
 
+/* 동기화 상태 아이콘 */
+.memo-sync-status {
+  font-size: var(--font-size-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  cursor: help;
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.memo-sync-status:hover {
+  opacity: 1;
+}
+
 .memo-card-actions {
   display: flex;
   gap: var(--spacing-xs);
