@@ -159,10 +159,10 @@
   padding: 2px;
 }
 
-.inline-calendar-container .calendar-day.has-memo::after {
-  width: 4px;
-  height: 4px;
-  bottom: 2px;
+.inline-calendar-container .calendar-day.has-memo {
+  border: 2px solid #000;
+  border-radius: 50%;
+  background-color: transparent;
 }
 
 .section-label {
@@ -725,6 +725,11 @@
   border-color: var(--color-primary);
 }
 
+.calendar-day.has-memo:hover {
+  border-color: #000;
+  background-color: transparent;
+}
+
 .calendar-day.other-month {
   color: var(--color-text-muted);
   background-color: var(--color-bg-secondary);
@@ -735,22 +740,26 @@
   border-color: var(--color-primary);
 }
 
-.calendar-day.has-memo::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background-color: #000;
+.calendar-day.has-memo {
+  border: 2px solid #000;
   border-radius: 50%;
+  background-color: transparent;
+}
+
+.calendar-day.today.has-memo {
+  border-color: #000;
 }
 
 .calendar-day.selected {
   background-color: var(--color-primary);
   color: white;
   border-color: var(--color-primary);
+}
+
+.calendar-day.selected.has-memo {
+  border-color: #000;
+  background-color: var(--color-primary);
+  color: white;
 }
 
 /* 책 선택 모달 */

@@ -324,9 +324,20 @@ class FlowView {
 
   /**
    * 책 선택 버튼 클릭 처리
+   * 메모 작성은 항상 오늘 날짜에서만 가능하므로, 다른 날짜를 보고 있다면 오늘 날짜로 전환
    */
   handleSelectBookClick() {
-    this.showBookSelector();
+    // 오늘 날짜로 전환
+    const today = new Date().toISOString().split('T')[0];
+    if (this.currentDate !== today) {
+      // 오늘 날짜로 전환 후 책 선택 모달 표시
+      this.loadMemoFlow(today).then(() => {
+        this.showBookSelector();
+      });
+    } else {
+      // 이미 오늘 날짜면 바로 책 선택 모달 표시
+      this.showBookSelector();
+    }
   }
 
   /**
@@ -1356,6 +1367,7 @@ class FlowView {
   /**
    * 책 선택 처리
    * @param {Object} book - 선택된 책 정보
+   * 메모 작성은 항상 오늘 날짜에서만 가능하므로, 오늘 날짜로 전환 후 책 선택
    */
   async handleBookSelect(book) {
     this.selectedBook = book;
@@ -1370,6 +1382,12 @@ class FlowView {
     }
     if (this.selectedBookAuthor) {
       this.selectedBookAuthor.textContent = book.author || '저자 정보 없음';
+    }
+    
+    // 메모 작성은 항상 오늘 날짜에서만 가능하므로 오늘 날짜로 전환
+    const today = new Date().toISOString().split('T')[0];
+    if (this.currentDate !== today) {
+      this.currentDate = today;
     }
     
     // 메모 목록 다시 로드하여 입력 컴포넌트를 올바른 위치에 배치

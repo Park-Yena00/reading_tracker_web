@@ -139,9 +139,9 @@ export const memoService = {
     // 온라인 상태면 서버에서도 조회하여 통합
     if (networkMonitor.isOnline) {
       try {
-        const params = {};
-        if (date) params.date = date;
-        
+    const params = {};
+    if (date) params.date = date;
+    
         const serverMemos = await apiClient.get(API_ENDPOINTS.MEMOS.BY_BOOK(userBookId), params);
 
         // 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장
