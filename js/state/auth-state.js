@@ -7,6 +7,7 @@ import { eventBus } from '../utils/event-bus.js';
 import { AUTH_EVENTS } from '../constants/events.js';
 import { tokenManager } from '../utils/token-manager.js';
 import { userService } from '../services/user-service.js';
+import { apiClient } from '../services/api-client.js';
 
 class AuthState {
   constructor() {
@@ -49,6 +50,25 @@ class AuthState {
     } catch (error) {
       // 네트워크 에러 또는 서버 연결 불가 시 처리
       console.warn('[AuthState] 서버 연결 확인 실패:', error.message);
+      
+      // 403 에러인 경우 토큰 갱신 시도 (Access Token 만료 가능성)
+      if (error.status === 403 || error.statusCode === 403) {
+        try {
+          // 토큰 갱신 시도
+          const refreshed = await apiClient.handleTokenRefresh();
+          if (refreshed) {
+            // 갱신 성공 시 사용자 정보 재조회
+            const userProfile = await userService.getProfile();
+            if (userProfile) {
+              this.setUser(userProfile);
+              return;
+            }
+          }
+        } catch (refreshError) {
+          // 토큰 갱신 실패
+          console.warn('[AuthState] 토큰 갱신 실패:', refreshError.message);
+        }
+      }
       
       // 네트워크 에러인지 확인
       const isNetworkError = 

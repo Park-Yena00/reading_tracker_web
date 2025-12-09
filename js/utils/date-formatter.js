@@ -122,5 +122,18 @@ export function daysBetween(date1, date2) {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * 오늘 날짜를 YYYY-MM-DD 형식으로 반환 (로컬 시간대 기준)
+ * toISOString()은 UTC 시간을 반환하므로, 한국 시간대에서는 하루 전 날짜가 나올 수 있음
+ * @returns {string} 오늘 날짜 문자열 (YYYY-MM-DD)
+ */
+export function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 
 

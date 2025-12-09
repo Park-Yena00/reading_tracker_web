@@ -42,6 +42,9 @@ class OfflineMemoService {
 
         // 로컬 ID 생성 (UUID v4)
         const localId = this.generateLocalId();
+        
+        // 멱등성 키 생성 (큐 항목별로 고정)
+        const idempotencyKey = this.generateLocalId();
 
         // 로컬 메모 객체 생성
         const localMemo = {
@@ -61,11 +64,12 @@ class OfflineMemoService {
         // 로컬 저장소에 저장
         await dbManager.saveMemo(localMemo);
 
-        // 동기화 큐에 추가
+        // 동기화 큐에 추가 (멱등성 키 포함)
         const queueItem = await syncQueueManager.enqueue({
             type: 'CREATE',
             localMemoId: localId,
-            data: memoData
+            data: memoData,
+            idempotencyKey: idempotencyKey // 멱등성 키 저장
         });
 
         // syncQueueId 업데이트
@@ -385,6 +389,20 @@ class OfflineMemoService {
         });
 
         for (const queueItem of pendingQueueItems) {
+            // 이미 'SYNCING' 상태인 항목은 건너뛰기 (다른 프로세스가 처리 중)
+            if (queueItem.status === 'SYNCING') {
+                console.log(`동기화 중인 항목 건너뛰기: ${queueItem.id}`);
+                continue;
+            }
+            
+            // 원자적 상태 변경 시도 (PENDING -> SYNCING)
+            const updated = await syncQueueManager.tryUpdateStatus(queueItem.id, 'PENDING', 'SYNCING');
+            if (!updated) {
+                // 다른 프로세스가 이미 처리 중이면 건너뛰기
+                console.log(`동기화 중인 항목 건너뛰기: ${queueItem.id}`);
+                continue;
+            }
+            
             try {
                 await this.syncQueueItem(queueItem);
                 successCount++;
@@ -404,8 +422,8 @@ class OfflineMemoService {
      * @param {Object} queueItem - 동기화 큐 항목
      */
     async syncQueueItem(queueItem) {
-        // 동기화 큐 항목 상태 업데이트
-        await syncQueueManager.updateStatus(queueItem.id, 'SYNCING');
+        // 상태는 syncPendingMemos()에서 이미 'SYNCING'으로 변경됨
+        // 여기서는 추가 상태 변경 없이 바로 처리
 
         try {
             let response;
@@ -423,10 +441,15 @@ class OfflineMemoService {
                     localMemo.syncStatus = 'syncing_create';
                     await dbManager.saveMemo(localMemo);
 
-                    // 멱등성 키 생성
-                    const idempotencyKey = this.generateLocalId();
+                    // 멱등성 키 재사용 (없으면 생성 후 저장)
+                    let idempotencyKey = queueItem.idempotencyKey;
+                    if (!idempotencyKey) {
+                        idempotencyKey = this.generateLocalId();
+                        queueItem.idempotencyKey = idempotencyKey;
+                        await syncQueueManager.updateQueueItem(queueItem);
+                    }
                     
-                    // API 호출 (멱등성 키 포함)
+                    // API 호출 (고정된 멱등성 키 사용)
                     response = await apiClient.post(API_ENDPOINTS.MEMOS.CREATE, queueItem.data, {
                         headers: {
                             'Idempotency-Key': idempotencyKey

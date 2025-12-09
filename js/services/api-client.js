@@ -135,25 +135,36 @@ class ApiClient {
       }
 
       // 403 에러 처리 (권한 없음)
+      // Access Token 만료로 인한 403일 수 있으므로 토큰 갱신 시도
       if (response.status === 403) {
-        // 응답 본문에서 에러 메시지 추출 시도
-        let errorMessage = '접근 권한이 없습니다.';
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.clone().json();
-            if (errorData && errorData.error && errorData.error.message) {
-              errorMessage = errorData.error.message;
+        const refreshed = await this.handleTokenRefresh();
+        if (refreshed) {
+          // 토큰 갱신 성공 시 원래 요청 재시도
+          const newToken = tokenManager.getAccessToken();
+          config.headers['Authorization'] = `Bearer ${newToken}`;
+          const retryResponse = await fetch(url, config);
+          return this.handleResponse(retryResponse, isJson);
+        } else {
+          // 토큰 갱신 실패 시 기존 403 에러 처리 로직 실행
+          // 응답 본문에서 에러 메시지 추출 시도
+          let errorMessage = '접근 권한이 없습니다.';
+          try {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const errorData = await response.clone().json();
+              if (errorData && errorData.error && errorData.error.message) {
+                errorMessage = errorData.error.message;
+              }
             }
+          } catch (e) {
+            // JSON 파싱 실패 시 기본 메시지 사용
           }
-        } catch (e) {
-          // JSON 파싱 실패 시 기본 메시지 사용
+          
+          const error = new Error(errorMessage);
+          error.status = 403;
+          error.statusCode = 403;
+          throw error;
         }
-        
-        const error = new Error(errorMessage);
-        error.status = 403;
-        error.statusCode = 403;
-        throw error;
       }
 
       return this.handleResponse(response, isJson);

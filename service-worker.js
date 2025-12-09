@@ -507,7 +507,7 @@ async function updateQueueItemInIndexedDB(queueItem) {
 
 // 원본 요청 재현(Replay): 동기화 큐의 데이터로 API 호출
 async function replayRequest(queueItem) {
-    const { type, serverMemoId, data, requestUrl, requestMethod } = queueItem;
+    const { type, serverMemoId, data, requestUrl, requestMethod, idempotencyKey } = queueItem;
     
     let url, method, body;
     
@@ -535,6 +535,16 @@ async function replayRequest(queueItem) {
             body = data ? JSON.stringify(data) : null;
     }
     
+    // 헤더 설정
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    
+    // CREATE 요청 시 멱등성 키 포함
+    if (type === 'CREATE' && idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+    }
+    
     // 원본 요청의 Authorization 헤더 가져오기
     // Service Worker는 요청을 가로채므로 원본 요청의 헤더를 사용할 수 없음
     // 대신 클라이언트에서 전달한 헤더를 사용하거나, 별도로 토큰을 관리해야 함
@@ -543,10 +553,9 @@ async function replayRequest(queueItem) {
     
     return fetch(fullUrl, {
         method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            // Authorization 헤더는 클라이언트에서 설정된 것을 사용
-            // Service Worker가 요청을 가로채므로 원본 요청의 헤더를 그대로 사용할 수 없음
+        headers: headers,
+        // Authorization 헤더는 클라이언트에서 설정된 것을 사용
+        // Service Worker가 요청을 가로채므로 원본 요청의 헤더를 그대로 사용할 수 없음
             // 실제 구현에서는 클라이언트와 메시지 통신으로 토큰을 받아야 함
         },
         body: body

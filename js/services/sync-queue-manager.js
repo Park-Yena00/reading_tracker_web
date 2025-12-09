@@ -19,6 +19,7 @@ class SyncQueueManager {
      * @param {number} [item.serverMemoId] - 서버 메모 ID (UPDATE/DELETE 시 필요)
      * @param {string} [item.status] - 큐 항목 상태 ('PENDING', 'WAITING', 'SYNCING', 'SUCCESS', 'FAILED')
      * @param {string} [item.originalQueueId] - 원본 큐 항목 ID (시나리오 2, 5: waiting 상태일 때 참조)
+     * @param {string} [item.idempotencyKey] - 멱등성 키 (중복 요청 방지용)
      * @param {Object} item.data - 요청 데이터
      * @returns {Promise<Object>} 생성된 큐 항목
      */
@@ -31,6 +32,7 @@ class SyncQueueManager {
             data: item.data,
             status: item.status || 'PENDING', // waiting 상태 지원
             originalQueueId: item.originalQueueId || null, // 시나리오 2, 5: 원본 항목 참조
+            idempotencyKey: item.idempotencyKey || null, // 멱등성 키 (중복 요청 방지용)
             retryCount: 0,
             error: null,
             createdAt: new Date().toISOString(),
@@ -255,6 +257,41 @@ class SyncQueueManager {
             const request = index.getAll('WAITING');
             request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 원자적 상태 변경 시도 (동시성 제어)
+     * 예상 상태와 일치할 때만 새 상태로 변경
+     * @param {string} queueId - 큐 항목 ID
+     * @param {string} expectedStatus - 예상 상태
+     * @param {string} newStatus - 새로운 상태
+     * @returns {Promise<boolean>} 변경 성공 여부
+     */
+    async tryUpdateStatus(queueId, expectedStatus, newStatus) {
+        return new Promise((resolve, reject) => {
+            const transaction = dbManager.db.transaction(['sync_queue'], 'readwrite');
+            const store = transaction.objectStore('sync_queue');
+            const getRequest = store.get(queueId);
+            
+            getRequest.onsuccess = () => {
+                const item = getRequest.result;
+                if (item && item.status === expectedStatus) {
+                    // 예상 상태와 일치하면 업데이트
+                    item.status = newStatus;
+                    item.updatedAt = new Date().toISOString();
+                    if (newStatus === 'SYNCING') {
+                        item.lastRetryAt = new Date().toISOString();
+                    }
+                    const putRequest = store.put(item);
+                    putRequest.onsuccess = () => resolve(true);
+                    putRequest.onerror = () => reject(putRequest.error);
+                } else {
+                    // 상태가 예상과 다르면 실패 (다른 프로세스가 이미 처리 중)
+                    resolve(false);
+                }
+            };
+            getRequest.onerror = () => reject(getRequest.error);
         });
     }
 

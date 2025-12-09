@@ -13,6 +13,7 @@ import { MemoEditor } from '../../components/memo-editor.js';
 import { HeaderView } from '../common/header.js';
 import { FooterView } from '../common/footer.js';
 import { ROUTES } from '../../constants/routes.js';
+import { getTodayDateString } from '../../utils/date-formatter.js';
 
 class FlowView {
   constructor() {
@@ -46,7 +47,7 @@ class FlowView {
     this.closeBookTotalPages = null;
     
     // 상태
-    this.currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    this.currentDate = getTodayDateString(); // YYYY-MM-DD (로컬 시간대 기준)
     this.currentGrouping = 'SESSION'; // SESSION, BOOK, TAG
     this.currentTagCategory = 'TYPE'; // TYPE, TOPIC
     this.selectedBookId = null; // 선택된 책의 userBookId
@@ -328,7 +329,7 @@ class FlowView {
    */
   handleSelectBookClick() {
     // 오늘 날짜로 전환
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     if (this.currentDate !== today) {
       // 오늘 날짜로 전환 후 책 선택 모달 표시
       this.loadMemoFlow(today).then(() => {
@@ -1385,7 +1386,7 @@ class FlowView {
     }
     
     // 메모 작성은 항상 오늘 날짜에서만 가능하므로 오늘 날짜로 전환
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     if (this.currentDate !== today) {
       this.currentDate = today;
     }
@@ -1411,6 +1412,14 @@ class FlowView {
       return;
     }
     
+    // 저장 버튼 비활성화 (중복 클릭 방지)
+    let saveButton = null;
+    if (this.memoEditor && this.memoEditor.btnSaveMemo) {
+      saveButton = this.memoEditor.btnSaveMemo;
+      saveButton.disabled = true;
+      saveButton.textContent = '저장 중...';
+    }
+    
     try {
       // 수정 모드인지 확인
       if (this.editingMemoId) {
@@ -1432,11 +1441,6 @@ class FlowView {
           this.memoEditor.memoPageInput.title = '';
         }
         
-        // 저장 버튼 텍스트 원래대로 변경
-        if (this.memoEditor && this.memoEditor.btnSaveMemo) {
-          this.memoEditor.btnSaveMemo.textContent = '저장';
-        }
-        
         // 입력 필드 초기화
         if (this.memoEditor) {
           this.memoEditor.clear();
@@ -1450,7 +1454,7 @@ class FlowView {
       } else {
         // 메모 작성
         // 날짜 검증: 오늘 날짜인지 확인
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString();
         if (this.currentDate !== today) {
           alert('메모는 오늘 날짜에만 작성할 수 있습니다.');
           return;
@@ -1514,6 +1518,12 @@ class FlowView {
     } catch (error) {
       console.error('메모 저장/수정 오류:', error);
       alert('메모 저장/수정 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
+    } finally {
+      // 저장 버튼 다시 활성화
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = '저장';
+      }
     }
   }
 
@@ -1655,7 +1665,7 @@ class FlowView {
   startDateChangeDetection() {
     // 1분마다 날짜 확인
     this.dateChangeIntervalId = setInterval(() => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateString();
       if (this.currentDate !== today) {
         // 날짜가 변경되었으면 오늘 날짜로 자동 전환
         this.loadMemoFlow(today);
@@ -1895,7 +1905,7 @@ class FlowView {
       
       // 독서 종료일 기본값을 오늘 날짜로 설정
       if (this.closeBookFinishedDate) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDateString();
         this.closeBookFinishedDate.value = today;
       }
       
