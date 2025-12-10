@@ -281,6 +281,16 @@ class OfflineBookService {
     }
 
     /**
+     * 서버 ID로 내 서재 정보 조회
+     * @param {number} serverId - 서버 ID (userBookId)
+     * @returns {Promise<Object|null>} 내 서재 정보 객체 또는 null
+     */
+    async getBookByServerId(serverId) {
+        await this.init();
+        return await dbManager.getBookByServerId(serverId);
+    }
+
+    /**
      * 모든 오프라인 내 서재 정보 조회 (UI 표시용)
      * @returns {Promise<Array>} 모든 내 서재 정보 배열
      */

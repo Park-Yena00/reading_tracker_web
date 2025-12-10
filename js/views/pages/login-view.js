@@ -47,9 +47,26 @@ class LoginView {
     this.passwordInput = document.getElementById('password');
     this.submitButton = this.form?.querySelector('button[type="submit"]');
     
+    // 필수 DOM 요소 검증
     if (!this.form) {
-      console.error('Login form not found');
+      console.error('[LoginView] Login form not found');
+      if (this.errorMessageEl) {
+        this.errorMessageEl.textContent = '로그인 폼을 찾을 수 없습니다. 페이지를 새로고침해주세요.';
+        this.errorMessageEl.style.display = 'block';
+      }
       return;
+    }
+    
+    if (!this.loginIdInput) {
+      console.error('[LoginView] Login ID input not found');
+    }
+    
+    if (!this.passwordInput) {
+      console.error('[LoginView] Password input not found');
+    }
+    
+    if (!this.submitButton) {
+      console.error('[LoginView] Submit button not found');
     }
     
     // 폼 제출 이벤트 리스너
@@ -95,7 +112,9 @@ class LoginView {
         window.location.href = ROUTES.BOOKSHELF;
       } else {
         // 로그인 실패
-        this.showError(result.error || '로그인에 실패했습니다.');
+        const errorMessage = result.error || '로그인에 실패했습니다.';
+        console.error('[LoginView] 로그인 실패:', errorMessage, result);
+        this.showError(errorMessage);
         
         // 필드별 에러 메시지 표시
         if (result.fieldErrors && result.fieldErrors.length > 0) {
@@ -103,8 +122,18 @@ class LoginView {
         }
       }
     } catch (error) {
-      console.error('로그인 오류:', error);
-      this.showError(error.message || '로그인 중 오류가 발생했습니다.');
+      console.error('[LoginView] 로그인 오류:', error);
+      
+      // 에러 메시지 추출
+      let errorMessage = '로그인 중 오류가 발생했습니다.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.isNetworkError || error.name === 'NetworkError') {
+        errorMessage = '서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.';
+      }
+      
+      this.showError(errorMessage);
     } finally {
       this.isSubmitting = false;
       this.setLoading(false);

@@ -6,7 +6,7 @@
 class IndexedDBManager {
     constructor() {
         this.dbName = 'reading-tracker';
-        this.version = 1;
+        this.version = 2; // offline_books 추가를 위해 버전 업그레이드
         this.db = null;
     }
 
@@ -248,12 +248,40 @@ class IndexedDBManager {
      * @returns {Promise<Object|null>} 내 서재 정보 객체 또는 null
      */
     async getBookByServerId(serverId) {
+        // serverId가 null, undefined, 또는 유효하지 않은 값인 경우 null 반환
+        if (serverId == null || serverId === undefined || serverId === '') {
+            console.warn('[IndexedDBManager] getBookByServerId: serverId가 유효하지 않습니다:', serverId);
+            return null;
+        }
+        
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['offline_books'], 'readonly');
             const store = transaction.objectStore('offline_books');
             const index = store.index('serverId');
             const request = index.get(serverId);
             request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 서버 ID로 모든 내 서재 정보 조회 (중복 데이터 처리용)
+     * @param {number} serverId - 서버 ID (userBookId)
+     * @returns {Promise<Array>} 내 서재 정보 배열
+     */
+    async getAllBooksByServerId(serverId) {
+        // serverId가 null, undefined, 또는 유효하지 않은 값인 경우 빈 배열 반환
+        if (serverId == null || serverId === undefined || serverId === '') {
+            console.warn('[IndexedDBManager] getAllBooksByServerId: serverId가 유효하지 않습니다:', serverId);
+            return [];
+        }
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readonly');
+            const store = transaction.objectStore('offline_books');
+            const index = store.index('serverId');
+            const request = index.getAll(serverId);
+            request.onsuccess = () => resolve(request.result || []);
             request.onerror = () => reject(request.error);
         });
     }

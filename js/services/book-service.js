@@ -35,13 +35,66 @@ export const bookService = {
   },
 
   /**
-   * 도서 상세 정보 조회
+   * 도서 상세 정보 조회 (하이브리드 전략: 네트워크 상태 기반 분기)
+   * - 온라인: 서버에서 조회
+   * - 오프라인: 내 서재 정보에서 도서 기본 정보 추출
    * @param {string} isbn - 도서 ISBN
    * @returns {Promise<Object>} BookDetailResponse { isbn, title, author, publisher, pubDate, description, coverUrl, price, category }
    */
   async getBookDetail(isbn) {
-    const response = await apiClient.get(`${API_ENDPOINTS.BOOKS.DETAIL}/${isbn}`);
-    return response; // BookDetailResponse 반환
+    // 오프라인 상태면 내 서재 정보에서 도서 기본 정보 추출
+    if (!networkMonitor.isOnline) {
+      const localBooks = await offlineBookService.getAllBooks();
+      const localBook = localBooks.find(book => book.isbn === isbn);
+      
+      if (localBook) {
+        // 내 서재 정보에서 도서 기본 정보 추출
+        return {
+          isbn: localBook.isbn,
+          title: localBook.title,
+          author: localBook.author,
+          publisher: localBook.publisher,
+          pubDate: localBook.pubDate,
+          description: localBook.description,
+          coverUrl: localBook.coverUrl,
+          totalPages: localBook.totalPages,
+          mainGenre: localBook.mainGenre,
+          price: null, // 로컬에는 가격 정보가 없을 수 있음
+          category: null // 도서 기본 정보에는 카테고리 없음
+        };
+      }
+      
+      throw new Error('오프라인 상태에서 도서 정보를 찾을 수 없습니다.');
+    }
+    
+    // 온라인 상태면 서버에서 조회
+    try {
+      const response = await apiClient.get(`${API_ENDPOINTS.BOOKS.DETAIL}/${isbn}`);
+      return response; // BookDetailResponse 반환
+    } catch (error) {
+      // 서버 조회 실패 시 내 서재 정보에서 도서 기본 정보 추출 (폴백)
+      console.warn('서버 도서 상세 정보 조회 실패, 내 서재 정보에서 추출 시도:', error);
+      const localBooks = await offlineBookService.getAllBooks();
+      const localBook = localBooks.find(book => book.isbn === isbn);
+      
+      if (localBook) {
+        return {
+          isbn: localBook.isbn,
+          title: localBook.title,
+          author: localBook.author,
+          publisher: localBook.publisher,
+          pubDate: localBook.pubDate,
+          description: localBook.description,
+          coverUrl: localBook.coverUrl,
+          totalPages: localBook.totalPages,
+          mainGenre: localBook.mainGenre,
+          price: null,
+          category: null
+        };
+      }
+      
+      throw error; // 원래 에러를 다시 던짐
+    }
   },
 
   /**
@@ -75,15 +128,40 @@ export const bookService = {
       // 온라인: 서버 우선 전략
       try {
         // 1. 서버에서 먼저 추가 시도
-        const serverBook = await apiClient.post(API_ENDPOINTS.BOOKS.USER_BOOKS, {
+        const serverResponse = await apiClient.post(API_ENDPOINTS.BOOKS.USER_BOOKS, {
           ...bookData,
           category: bookData.category || 'ToRead', // 기본값: 읽고 싶은 책
         });
         
-        // 2. 성공 시 IndexedDB 갱신
-        const localBook = await BookOperationHelper.updateLocalAfterCreate(serverBook);
+        // 2. 서버 응답을 MyShelfResponse.ShelfBook 형식으로 변환
+        // BookAdditionResponse에는 userBookId가 포함되어 있음
+        const serverBook = {
+          userBookId: serverResponse.userBookId,
+          bookId: serverResponse.bookId,
+          isbn: bookData.isbn,
+          title: serverResponse.title,
+          author: bookData.author || '',
+          publisher: bookData.publisher || '',
+          description: bookData.description || null,
+          coverUrl: bookData.coverUrl || null,
+          totalPages: bookData.totalPages || null,
+          mainGenre: bookData.mainGenre || null,
+          pubDate: bookData.pubDate || null,
+          category: serverResponse.category,
+          expectation: bookData.expectation || null,
+          lastReadPage: bookData.readingProgress || null,
+          lastReadAt: bookData.readingStartDate || null,
+          readingFinishedDate: bookData.readingFinishedDate || null,
+          purchaseType: bookData.purchaseType || null,
+          rating: bookData.rating || null,
+          review: bookData.review || null,
+          addedAt: new Date().toISOString(), // 서버에서 반환하지 않으므로 현재 시간 사용
+        };
         
-        // 3. 서버 응답 반환
+        // 3. IndexedDB 갱신
+        await BookOperationHelper.updateLocalAfterCreate(serverBook);
+        
+        // 4. 서버 응답 반환 (MyShelfResponse.ShelfBook 형식)
         return serverBook;
       } catch (error) {
         // 서버 실패 시 오프라인 모드로 전환
@@ -105,69 +183,77 @@ export const bookService = {
   },
 
   /**
-   * 서재 조회 (로컬 + 서버 통합)
-   * 하이브리드 전략: 오프라인에서는 로컬 데이터만 반환
-   * 동기화 완료 후 서버에서 조회 (질문 6 개선)
+   * 서재 조회 (서버 우선 전략)
+   * - 온라인: 서버에서만 조회, IndexedDB는 캐시로만 사용 (오프라인 대비)
+   * - 오프라인: IndexedDB에서만 조회
    * @param {Object} [params] - 조회 파라미터
    * @param {string} [params.category] - 카테고리 필터 (ToRead, Reading, AlmostFinished, Finished)
    * @param {string} [params.sortBy] - 정렬 기준 (TITLE, AUTHOR, PUBLISHER, GENRE)
    * @returns {Promise<Object>} MyShelfResponse { totalCount, books[] }
    */
   async getBookshelf({ category, sortBy } = {}) {
-    // 로컬 내 서재 정보 조회
-    let localBooks = [];
-    if (category) {
-      localBooks = await offlineBookService.getBooksByCategory(category);
-    } else {
-      localBooks = await offlineBookService.getAllBooks();
-    }
-
-    // 온라인 상태면 서버에서도 조회하여 통합
+    // 온라인 상태면 서버에서만 조회 (IndexedDB 읽기 안 함)
     if (networkMonitor.isOnline) {
-      // 동기화 중이면 로컬 내 서재 정보만 반환 (질문 6 개선)
+      // 동기화 중이면 대기
       if (syncStateManager.isSyncing) {
-        console.log('[BookService] 동기화 중이므로 로컬 내 서재 정보만 반환');
-        return {
-          totalCount: localBooks.length,
-          books: this.mapLocalBooksToResponse(localBooks)
-        };
+        console.log('[BookService] 동기화 중이므로 대기...');
+        const isSyncComplete = await syncStateManager.waitForSyncComplete();
+        if (!isSyncComplete) {
+          console.warn('[BookService] 동기화 완료 대기 타임아웃, 서버 조회 시도');
+        }
       }
 
-      // 동기화 완료 대기 (질문 6 개선)
-      const isSyncComplete = await syncStateManager.waitForSyncComplete();
-      if (!isSyncComplete) {
-        console.warn('[BookService] 동기화 완료 대기 타임아웃, 로컬 내 서재 정보만 반환');
-        return {
-          totalCount: localBooks.length,
-          books: this.mapLocalBooksToResponse(localBooks)
-        };
-      }
-
-      // 동기화 완료 후 서버에서 조회
       try {
         const params = {};
         if (category) params.category = category;
         if (sortBy) params.sortBy = sortBy;
         
+        // 서버에서 조회
         const serverResponse = await apiClient.get(API_ENDPOINTS.BOOKS.USER_BOOKS, params);
         const serverBooks = serverResponse.books || [];
 
-        // 서버 내 서재 정보를 IndexedDB에 저장
-        for (const serverBook of serverBooks) {
-          await BookOperationHelper.saveServerBookAsLocal(serverBook);
-        }
+        // 서버 내 서재 정보를 IndexedDB에 캐시로 저장 (오프라인 대비)
+        // 비동기로 처리하여 응답 지연 방지
+        Promise.all(serverBooks.map(serverBook => 
+          BookOperationHelper.saveServerBookAsLocal(serverBook).catch(err => 
+            console.warn('[BookService] IndexedDB 캐시 저장 실패 (무시):', err)
+          )
+        )).catch(() => {}); // 모든 실패 무시
 
-        // 로컬 내 서재 정보와 서버 내 서재 정보 통합
-        return this.mergeBooks(localBooks, serverBooks);
+        // 서버 데이터만 반환 (IndexedDB 읽기 안 함)
+        return {
+          totalCount: serverBooks.length,
+          books: serverBooks
+        };
       } catch (error) {
-        console.error('서버 내 서재 정보 조회 실패, 로컬 데이터만 반환:', error);
+        console.error('서버 내 서재 정보 조회 실패, IndexedDB 폴백 시도:', error);
+        
+        // 서버 실패 시에만 IndexedDB에서 조회 (오프라인 폴백)
+        let localBooks = [];
+        try {
+          if (category) {
+            localBooks = await offlineBookService.getBooksByCategory(category);
+          } else {
+            localBooks = await offlineBookService.getAllBooks();
+          }
+        } catch (localError) {
+          console.error('IndexedDB 조회도 실패:', localError);
+        }
+        
         return {
           totalCount: localBooks.length,
           books: this.mapLocalBooksToResponse(localBooks)
         };
       }
     } else {
-      // 오프라인 상태면 로컬 데이터만 반환
+      // 오프라인 상태면 IndexedDB에서만 조회
+      let localBooks = [];
+      if (category) {
+        localBooks = await offlineBookService.getBooksByCategory(category);
+      } else {
+        localBooks = await offlineBookService.getAllBooks();
+      }
+      
       return {
         totalCount: localBooks.length,
         books: this.mapLocalBooksToResponse(localBooks)
@@ -264,21 +350,63 @@ export const bookService = {
   },
 
   /**
-   * 서재에 저장된 도서 상세 정보 조회
+   * 서재에 저장된 도서 상세 정보 조회 (서버 우선 전략)
+   * - 온라인: 서버에서만 조회, IndexedDB는 캐시로만 사용
+   * - 오프라인: IndexedDB에서만 조회
    * @param {number} userBookId - 사용자 도서 ID
    * @returns {Promise<Object>} MyShelfResponse.ShelfBook (도서 기본 정보 + 서재 저장 정보)
    */
   async getUserBookDetail(userBookId) {
-    // 전체 서재 목록을 가져온 후 userBookId로 필터링
-    const response = await apiClient.get(API_ENDPOINTS.BOOKS.USER_BOOKS, {});
-    const books = response.books || [];
-    const userBook = books.find(book => book.userBookId === parseInt(userBookId));
-    
-    if (!userBook) {
-      throw new Error('서재에 저장된 도서를 찾을 수 없습니다.');
+    // 온라인 상태면 서버에서만 조회
+    if (networkMonitor.isOnline) {
+      // 동기화 중이면 대기
+      if (syncStateManager.isSyncing) {
+        const isSyncComplete = await syncStateManager.waitForSyncComplete();
+        if (!isSyncComplete) {
+          console.warn('[BookService] 동기화 완료 대기 타임아웃, 서버 조회 시도');
+        }
+      }
+
+      try {
+        // 서버에서 전체 서재 목록을 가져온 후 userBookId로 필터링
+        const response = await apiClient.get(API_ENDPOINTS.BOOKS.USER_BOOKS, {});
+        const books = response.books || [];
+        
+        // userBookId를 숫자로 변환하여 비교
+        const userIdNum = typeof userBookId === 'string' ? parseInt(userBookId) : userBookId;
+        const serverBook = books.find(book => {
+          const bookIdNum = typeof book.userBookId === 'string' ? parseInt(book.userBookId) : book.userBookId;
+          return bookIdNum === userIdNum;
+        });
+        
+        if (serverBook) {
+          // IndexedDB에 캐시로 저장 (오프라인 대비, 비동기)
+          BookOperationHelper.saveServerBookAsLocal(serverBook).catch(err => 
+            console.warn('[BookService] IndexedDB 캐시 저장 실패 (무시):', err)
+          );
+          return serverBook;
+        }
+        
+        throw new Error('서재에 저장된 도서를 찾을 수 없습니다.');
+      } catch (error) {
+        console.error('서버 내 서재 정보 조회 실패, IndexedDB 폴백 시도:', error);
+        
+        // 서버 실패 시에만 IndexedDB에서 조회 (오프라인 폴백)
+        const localBook = await BookOperationHelper.getLocalBook(userBookId);
+        if (localBook) {
+          return this.mapLocalBookToResponse(localBook);
+        }
+        
+        throw new Error('서재에 저장된 도서를 찾을 수 없습니다.');
+      }
+    } else {
+      // 오프라인 상태면 IndexedDB에서만 조회
+      const localBook = await BookOperationHelper.getLocalBook(userBookId);
+      if (localBook) {
+        return this.mapLocalBookToResponse(localBook);
+      }
+      throw new Error('오프라인 상태에서 서재에 저장된 도서를 찾을 수 없습니다.');
     }
-    
-    return userBook;
   },
 
   /**
@@ -338,21 +466,73 @@ export const bookService = {
             await BookOperationHelper.updateLocalAfterUpdate(userBookId, { ...serverBook, ...updateData });
             return '내 서재 정보가 수정되었습니다.';
           } catch (error) {
-            throw new Error('내 서재 정보를 찾을 수 없습니다.');
+            // 서버 조회/수정 실패 시 오프라인 모드로 전환
+            // 네트워크 오류 또는 서버 오류(500 등)인 경우 오프라인 모드로 전환
+            const isNetworkOrServerError = error.message?.includes('Failed to fetch') || 
+                                          error.message?.includes('NetworkError') ||
+                                          error.message?.includes('network') ||
+                                          error.message?.includes('서버 내부 오류') ||
+                                          error.message?.includes('Internal Server Error') ||
+                                          error.status === 500 ||
+                                          error.statusCode === 500 ||
+                                          !navigator.onLine;
+            
+            if (isNetworkOrServerError) {
+              console.warn('[BookService] 서버 조회/수정 실패, 오프라인 모드로 전환:', error);
+              // 로컬에 없으면 오프라인 모드로 전환 불가
+              throw new Error('오프라인 상태에서 내 서재 정보를 찾을 수 없습니다. 네트워크 연결 후 다시 시도해주세요.');
+            } else {
+              // 네트워크/서버 오류가 아니면 원래 에러를 다시 던짐
+              throw new Error('내 서재 정보를 찾을 수 없습니다.');
+            }
           }
         }
 
         // 2. serverId가 있으면 서버에서 수정 시도
         if (localBook.serverId) {
-          await apiClient.put(API_ENDPOINTS.BOOKSHELF.UPDATE(localBook.serverId), updateData);
-          
-          // 3. 성공 시 IndexedDB 갱신
-          await BookOperationHelper.updateLocalAfterUpdate(
-            localBook.serverId,
-            { ...localBook, ...updateData }
-          );
-          
-          return '내 서재 정보가 수정되었습니다.';
+          try {
+            await apiClient.put(API_ENDPOINTS.BOOKSHELF.UPDATE(localBook.serverId), updateData);
+            
+            // 3. 성공 시 서버에서 최신 데이터를 다시 조회하여 IndexedDB 갱신
+            // 카테고리 변경 등으로 인해 서버에서 자동으로 변경된 필드도 반영하기 위함
+            try {
+              const updatedServerBook = await this.getUserBookDetail(localBook.serverId);
+              await BookOperationHelper.updateLocalAfterUpdate(
+                localBook.serverId,
+                updatedServerBook
+              );
+            } catch (fetchError) {
+              // 최신 데이터 조회 실패 시 기존 데이터로 업데이트
+              console.warn('[BookService] 최신 데이터 조회 실패, 기존 데이터로 업데이트:', fetchError);
+              await BookOperationHelper.updateLocalAfterUpdate(
+                localBook.serverId,
+                { ...localBook, ...updateData }
+              );
+            }
+            
+            return '내 서재 정보가 수정되었습니다.';
+          } catch (error) {
+            // 서버 수정 실패 시 오프라인 모드로 전환
+            // 네트워크 오류 또는 서버 오류(500 등)인 경우 오프라인 모드로 전환
+            const isNetworkOrServerError = error.message?.includes('Failed to fetch') || 
+                                          error.message?.includes('NetworkError') ||
+                                          error.message?.includes('network') ||
+                                          error.message?.includes('서버 내부 오류') ||
+                                          error.message?.includes('Internal Server Error') ||
+                                          error.status === 500 ||
+                                          error.statusCode === 500 ||
+                                          !navigator.onLine;
+            
+            if (isNetworkOrServerError) {
+              console.warn('[BookService] 서버 수정 실패, 오프라인 모드로 전환:', error);
+              // 로컬에 있으므로 오프라인 모드로 전환 가능
+              await offlineBookService.updateBook(userBookId, updateData);
+              return '내 서재 정보 수정이 예약되었습니다. 네트워크 복구 시 자동 동기화됩니다.';
+            } else {
+              // 네트워크/서버 오류가 아니면 원래 에러를 다시 던짐
+              throw error;
+            }
+          }
         } else {
           // serverId가 없으면 오프라인 로직으로 전환
           await offlineBookService.updateBook(userBookId, updateData);
@@ -386,33 +566,56 @@ export const bookService = {
     // 서버 내 서재 정보를 맵으로 변환 (중복 제거용)
     const serverBookMap = new Map();
     serverBooks.forEach(book => {
-      serverBookMap.set(book.userBookId, book);
+      if (book.userBookId) {
+        serverBookMap.set(book.userBookId, book);
+      }
     });
 
     const result = [];
     const processedServerIds = new Set(); // 처리된 서버 ID 추적
+    const processedLocalIds = new Set(); // 처리된 로컬 ID 추적 (중복 방지)
 
+    // 먼저 로컬 내 서재 정보 처리
     localBooks.forEach(localBook => {
+      // 중복 체크: 같은 localId가 이미 처리되었는지 확인
+      if (processedLocalIds.has(localBook.localId)) {
+        console.warn('[BookService] mergeBooks: 중복된 localId 발견, 건너뜀:', localBook.localId);
+        return;
+      }
+      
       if (localBook.syncStatus === 'synced' && localBook.serverId) {
         // 동기화 완료된 내 서재 정보: 서버 내 서재 정보로 대체
         const serverBook = serverBookMap.get(localBook.serverId);
         if (serverBook) {
           result.push(serverBook);
           processedServerIds.add(localBook.serverId);
+          processedLocalIds.add(localBook.localId);
           serverBookMap.delete(localBook.serverId);
         } else {
           result.push(this.mapLocalBookToResponse(localBook));
+          processedLocalIds.add(localBook.localId);
         }
       } else if (localBook.serverId) {
         // 동기화 대기 중인 내 서재 정보 (수정/삭제 대기)
-        // 서버 내 서재 정보는 제외하고 로컬 내 서재 정보만 표시 (낡은 데이터 무시)
-        result.push(this.mapLocalBookToResponse(localBook));
-        processedServerIds.add(localBook.serverId);
-        serverBookMap.delete(localBook.serverId); // 중요: 서버 내 서재 정보 제거하여 중복 방지
+        // 서버 내 서재 정보가 있으면 서버 내 서재 정보로 대체
+        const serverBook = serverBookMap.get(localBook.serverId);
+        if (serverBook) {
+          result.push(serverBook);
+          processedServerIds.add(localBook.serverId);
+          processedLocalIds.add(localBook.localId);
+          serverBookMap.delete(localBook.serverId);
+        } else {
+          // 서버 내 서재 정보가 없으면 로컬 내 서재 정보만 표시
+          result.push(this.mapLocalBookToResponse(localBook));
+          processedServerIds.add(localBook.serverId);
+          processedLocalIds.add(localBook.localId);
+          serverBookMap.delete(localBook.serverId); // 중요: 서버 내 서재 정보 제거하여 중복 방지
+        }
       } else {
         // 아직 동기화되지 않은 내 서재 정보 (생성 대기)
         // serverId가 null이므로 서버 내 서재 정보와 매칭 불가
         result.push(this.mapLocalBookToResponse(localBook));
+        processedLocalIds.add(localBook.localId);
       }
     });
 
@@ -420,6 +623,7 @@ export const bookService = {
     serverBookMap.forEach(book => {
       if (!processedServerIds.has(book.userBookId)) {
         result.push(book);
+        processedServerIds.add(book.userBookId);
       }
     });
 

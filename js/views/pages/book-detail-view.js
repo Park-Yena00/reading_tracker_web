@@ -250,7 +250,7 @@ class BookDetailView {
   }
 
   /**
-   * 서재에 저장된 도서 상세 정보 로드
+   * 서재에 저장된 도서 상세 정보 로드 (오프라인 지원 개선)
    */
   async loadUserBookDetail() {
     this.setLoading(true);
@@ -258,7 +258,7 @@ class BookDetailView {
     this.hideBookDetail();
     
     try {
-      // 서재에 저장된 도서 정보 가져오기
+      // 서재에 저장된 도서 정보 가져오기 (하이브리드 전략 적용)
       const rawUserBookDetail = await bookService.getUserBookDetail(this.userBookId);
       
       // 백엔드 필드명을 프론트엔드 필드명으로 매핑
@@ -280,14 +280,30 @@ class BookDetailView {
       // ISBN 추출
       this.isbn = this.userBookDetail.isbn;
       
-      // 도서 기본 정보를 병렬로 가져오기 (성능 최적화)
-      // Promise.all을 사용하여 이미 처리된 데이터와 API 호출을 병렬 처리
-      const [, bookDetail] = await Promise.all([
-        Promise.resolve(this.userBookDetail), // 이미 처리된 데이터
-        bookService.getBookDetail(this.isbn)  // 병렬 호출
-      ]);
-      
-      this.bookDetail = bookDetail;
+      // 도서 기본 정보 조회 (하이브리드 전략 적용, 오프라인 지원)
+      try {
+        this.bookDetail = await bookService.getBookDetail(this.isbn);
+      } catch (error) {
+        // 도서 기본 정보 조회 실패 시 내 서재 정보에서 추출 (추가 폴백)
+        console.warn('도서 기본 정보 조회 실패, 내 서재 정보에서 추출:', error);
+        if (this.userBookDetail) {
+          this.bookDetail = {
+            isbn: this.userBookDetail.isbn,
+            title: this.userBookDetail.title,
+            author: this.userBookDetail.author,
+            publisher: this.userBookDetail.publisher,
+            pubDate: this.userBookDetail.pubDate,
+            description: this.userBookDetail.description,
+            coverUrl: this.userBookDetail.coverUrl,
+            totalPages: this.userBookDetail.totalPages,
+            mainGenre: this.userBookDetail.mainGenre,
+            price: null,
+            category: null
+          };
+        } else {
+          throw error; // 원래 에러를 다시 던짐
+        }
+      }
       
       // totalPages가 bookDetail에 있으면 사용
       if (this.bookDetail?.totalPages && !this.userBookDetail.totalPages) {
@@ -357,6 +373,16 @@ class BookDetailView {
         if (placeholder && placeholder.classList.contains('book-cover-placeholder')) {
           placeholder.style.display = 'none';
         }
+        
+        // 이미지 로딩 실패 시 placeholder 표시 (오프라인 지원)
+        coverImage.onerror = () => {
+          console.warn('도서 표지 이미지 로딩 실패:', coverImageUrl);
+          coverImage.style.display = 'none';
+          const placeholder = coverImage.nextElementSibling;
+          if (placeholder && placeholder.classList.contains('book-cover-placeholder')) {
+            placeholder.style.display = 'flex';
+          }
+        };
       } else {
         // URL이 없으면 이미지 숨기고 placeholder 표시
         coverImage.style.display = 'none';
@@ -1365,17 +1391,11 @@ class BookDetailView {
       // 서재에 추가
       const response = await bookService.addBookToShelf(requestData);
       
-      // 상태 업데이트 (Event-Driven 패턴)
-      // bookState.addBook() 내부에서 BOOK_ADDED 이벤트가 자동으로 발행됨
-      const addedBook = {
-        id: response.bookId, // BookAdditionResponse의 bookId 필드 사용
-        isbn: this.bookDetail.isbn,
-        title: response.title,
-        category: response.category,
-        addedAt: new Date().toISOString(), // 현재 시간 사용 (서버에서 반환하지 않음)
-        ...requestData
-      };
-      bookState.addBook(addedBook);
+      // 서재 목록 갱신을 위한 이벤트 발행
+      // bookState.addBook()을 호출하지 않음 - loadBookshelf()에서 서버 데이터를 조회하므로 중복 방지
+      eventBus.publish(BOOK_EVENTS.BOOKSHELF_UPDATED, {
+        timestamp: new Date(),
+      });
       
       // 성공 메시지
       alert(`"${this.bookDetail.title}"이(가) 서재에 추가되었습니다.`);
@@ -1754,6 +1774,11 @@ class BookDetailView {
         purchaseType: purchaseType || null,
       });
       
+      // 서재 목록 갱신을 위한 이벤트 발행
+      eventBus.publish(BOOK_EVENTS.BOOKSHELF_UPDATED, {
+        timestamp: new Date(),
+      });
+      
       // 성공 메시지
       alert('독서를 시작했습니다.');
       
@@ -1980,6 +2005,11 @@ class BookDetailView {
       // 카테고리 변경 알림 및 처리
       const newCategory = mappedUserBookDetail.category;
       if (previousCategory !== newCategory) {
+        // 서재 목록 갱신을 위한 이벤트 발행 (카테고리 변경 시)
+        eventBus.publish(BOOK_EVENTS.BOOKSHELF_UPDATED, {
+          timestamp: new Date(),
+        });
+        
         const categoryLabels = {
           'ToRead': '읽을 예정',
           'Reading': '읽는 중',
@@ -2301,6 +2331,11 @@ class BookDetailView {
       
       // 완독 처리 API 호출 (카테고리, 독서 종료일, 평점 및 후기 업데이트)
       await bookService.updateBookDetail(this.userBookId, requestData);
+      
+      // 서재 목록 갱신을 위한 이벤트 발행
+      eventBus.publish(BOOK_EVENTS.BOOKSHELF_UPDATED, {
+        timestamp: new Date(),
+      });
       
       // 성공 메시지
       alert('완독 처리가 완료되었습니다.');

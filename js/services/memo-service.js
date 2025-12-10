@@ -11,10 +11,13 @@ import { networkMonitor } from '../utils/network-monitor.js';
 import { MemoOperationHelper } from '../utils/memo-operation-helper.js';
 import { syncStateManager } from '../utils/sync-state-manager.js';
 import { requestQueueManager } from '../utils/request-queue-manager.js';
+import { getTodayDateString } from '../utils/date-formatter.js';
 
 export const memoService = {
   /**
-   * 오늘의 흐름 조회
+   * 오늘의 흐름 조회 (서버 우선 전략)
+   * - 온라인: 서버에서만 조회, IndexedDB는 캐시로만 사용 (오프라인 대비)
+   * - 오프라인: IndexedDB에서만 조회
    * @param {Object} [params] - 조회 파라미터
    * @param {string} [params.date] - 조회할 날짜 (ISO 8601 형식: YYYY-MM-DD, 기본값: 오늘)
    * @param {string} [params.sortBy] - 정렬 방식 (SESSION, BOOK, TAG, 기본값: SESSION)
@@ -22,16 +25,64 @@ export const memoService = {
    * @returns {Promise<Object>} TodayFlowResponse
    */
   async getTodayFlow({ date, sortBy = 'SESSION', tagCategory } = {}) {
-    const params = {};
-    if (date) params.date = date;
-    if (sortBy) params.sortBy = sortBy;
-    // TAG 모드일 때만 tagCategory 추가
-    if (tagCategory) {
-      params.tagCategory = tagCategory;
+    // 온라인 상태면 서버에서만 조회 (IndexedDB 읽기 안 함)
+    if (networkMonitor.isOnline) {
+      // 동기화 중이면 대기
+      if (syncStateManager.isSyncing) {
+        console.log('[MemoService] 동기화 중이므로 대기...');
+        const isSyncComplete = await syncStateManager.waitForSyncComplete();
+        if (!isSyncComplete) {
+          console.warn('[MemoService] 동기화 완료 대기 타임아웃, 서버 조회 시도');
+        }
+      }
+
+      try {
+        const params = {};
+        if (date) params.date = date;
+        if (sortBy) params.sortBy = sortBy;
+        if (tagCategory) params.tagCategory = tagCategory;
+        
+        // 서버에서 조회
+        const serverResponse = await apiClient.get(API_ENDPOINTS.MEMOS.TODAY_FLOW, params);
+
+        // 서버 메모를 IndexedDB에 캐시로 저장 (오프라인 대비)
+        // 비동기로 처리하여 응답 지연 방지
+        Promise.all([
+          ...(serverResponse.memosByBook ? Object.values(serverResponse.memosByBook).flatMap(bookGroup => 
+            (bookGroup.memos || []).map(memo => 
+              MemoOperationHelper.saveServerMemoAsLocal(memo).catch(err => 
+                console.warn('[MemoService] IndexedDB 캐시 저장 실패 (무시):', err)
+              )
+            )
+          ) : []),
+          ...(serverResponse.memosByTag ? Object.values(serverResponse.memosByTag).flatMap(tagGroup => 
+            (tagGroup.memos || []).map(memo => 
+              MemoOperationHelper.saveServerMemoAsLocal(memo).catch(err => 
+                console.warn('[MemoService] IndexedDB 캐시 저장 실패 (무시):', err)
+              )
+            )
+          ) : [])
+        ]).catch(() => {}); // 모든 실패 무시
+
+        // 서버 데이터만 반환 (IndexedDB 읽기 안 함)
+        return serverResponse;
+      } catch (error) {
+        console.error('서버 오늘의 흐름 조회 실패, IndexedDB 폴백 시도:', error);
+        
+        // 서버 실패 시에만 IndexedDB에서 조회 (오프라인 폴백)
+        try {
+          const localMemos = await this.getLocalMemosByDate(date);
+          return this.mapLocalMemosToTodayFlowResponse(localMemos, sortBy, tagCategory);
+        } catch (localError) {
+          console.error('IndexedDB 조회도 실패:', localError);
+          throw error; // 원래 에러를 다시 던짐
+        }
+      }
+    } else {
+      // 오프라인 상태면 IndexedDB에서만 조회
+      const localMemos = await this.getLocalMemosByDate(date);
+      return this.mapLocalMemosToTodayFlowResponse(localMemos, sortBy, tagCategory);
     }
-    
-    const response = await apiClient.get(API_ENDPOINTS.MEMOS.TODAY_FLOW, params);
-    return response; // TodayFlowResponse 반환
   },
 
   /**
@@ -261,58 +312,57 @@ export const memoService = {
   },
 
   /**
-   * 특정 책의 메모 조회 (로컬 + 서버 통합)
-   * 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장
-   * 동기화 완료 후 서버에서 조회 (질문 6 개선)
+   * 특정 책의 메모 조회 (서버 우선 전략)
+   * - 온라인: 서버에서만 조회, IndexedDB는 캐시로만 사용 (오프라인 대비)
+   * - 오프라인: IndexedDB에서만 조회
    * @param {number} userBookId - 사용자 책 ID
    * @param {string} [date] - 조회할 날짜 (ISO 8601 형식: YYYY-MM-DD, 선택사항)
-   * @returns {Promise<Array<Object>>} MemoResponse 리스트 (로컬 메모와 서버 메모 통합)
+   * @returns {Promise<Array<Object>>} MemoResponse 리스트
    */
   async getMemosByBook(userBookId, date = null) {
-    // 로컬 메모 조회
-    const localMemos = await offlineMemoService.getMemosByBook(userBookId);
-
-    // 온라인 상태면 서버에서도 조회하여 통합
+    // 온라인 상태면 서버에서만 조회 (IndexedDB 읽기 안 함)
     if (networkMonitor.isOnline) {
-      // 동기화 중이면 로컬 메모만 반환 (질문 6 개선)
+      // 동기화 중이면 대기
       if (syncStateManager.isSyncing) {
-        console.log('[MemoService] 동기화 중이므로 로컬 메모만 반환');
-        return this.mapLocalMemosToResponse(localMemos);
+        console.log('[MemoService] 동기화 중이므로 대기...');
+        const isSyncComplete = await syncStateManager.waitForSyncComplete();
+        if (!isSyncComplete) {
+          console.warn('[MemoService] 동기화 완료 대기 타임아웃, 서버 조회 시도');
+        }
       }
 
-      // 동기화 완료 대기 (질문 6 개선)
-      const isSyncComplete = await syncStateManager.waitForSyncComplete();
-      if (!isSyncComplete) {
-        console.warn('[MemoService] 동기화 완료 대기 타임아웃, 로컬 메모만 반환');
-        return this.mapLocalMemosToResponse(localMemos);
-      }
-
-      // 동기화 완료 후 서버에서 조회
       try {
         const params = {};
         if (date) params.date = date;
     
+        // 서버에서 조회
         const serverMemos = await apiClient.get(API_ENDPOINTS.MEMOS.BY_BOOK(userBookId), params);
 
-        // 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장
-        const today = new Date();
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // 서버 메모를 IndexedDB에 캐시로 저장 (오프라인 대비)
+        // 비동기로 처리하여 응답 지연 방지
+        Promise.all(serverMemos.map(serverMemo => 
+          MemoOperationHelper.saveServerMemoAsLocal(serverMemo).catch(err => 
+            console.warn('[MemoService] IndexedDB 캐시 저장 실패 (무시):', err)
+          )
+        )).catch(() => {}); // 모든 실패 무시
 
-        // 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장 (공통 로직 사용)
-        for (const serverMemo of serverMemos) {
-          await MemoOperationHelper.saveServerMemoAsLocal(serverMemo);
-        }
-
-        // 로컬 메모와 서버 메모 통합
-        return this.mergeMemos(localMemos, serverMemos);
+        // 서버 데이터만 반환 (IndexedDB 읽기 안 함)
+        return serverMemos;
       } catch (error) {
-        console.error('서버 메모 조회 실패, 로컬 메모만 반환:', error);
-        return this.mapLocalMemosToResponse(localMemos);
+        console.error('서버 메모 조회 실패, IndexedDB 폴백 시도:', error);
+        
+        // 서버 실패 시에만 IndexedDB에서 조회 (오프라인 폴백)
+        try {
+          const localMemos = await offlineMemoService.getMemosByBook(userBookId);
+          return this.mapLocalMemosToResponse(localMemos);
+        } catch (localError) {
+          console.error('IndexedDB 조회도 실패:', localError);
+          throw error; // 원래 에러를 다시 던짐
+        }
       }
     } else {
-      // 오프라인 상태면 로컬 메모만 반환
-      // (최근 7일 메모가 IndexedDB에 저장되어 있음)
+      // 오프라인 상태면 IndexedDB에서만 조회
+      const localMemos = await offlineMemoService.getMemosByBook(userBookId);
       return this.mapLocalMemosToResponse(localMemos);
     }
   },
@@ -401,6 +451,78 @@ export const memoService = {
    */
   mapLocalMemosToResponse(localMemos) {
     return localMemos.map(memo => this.mapLocalMemoToResponse(memo));
+  },
+
+  /**
+   * 날짜별 로컬 메모 조회
+   * @param {string} [date] - 조회할 날짜 (YYYY-MM-DD, 기본값: 오늘)
+   * @returns {Promise<Array>} 로컬 메모 배열
+   */
+  async getLocalMemosByDate(date = null) {
+    const targetDate = date || getTodayDateString();
+    const allLocalMemos = await offlineMemoService.getAllMemos();
+    
+    // 날짜별 필터링 (memoStartTime 기준)
+    return allLocalMemos.filter(memo => {
+      if (!memo.memoStartTime) return false;
+      const memoDate = new Date(memo.memoStartTime);
+      const targetDateObj = new Date(targetDate);
+      
+      // 날짜만 비교 (시간 제외)
+      return memoDate.toDateString() === targetDateObj.toDateString();
+    });
+  },
+
+  /**
+   * 로컬 메모를 TodayFlowResponse 형식으로 변환
+   * @param {Array} localMemos - 로컬 메모 배열
+   * @param {string} sortBy - 정렬 방식 (SESSION, BOOK, TAG)
+   * @param {string} [tagCategory] - 태그 대분류 (TYPE, TOPIC)
+   * @returns {Object} TodayFlowResponse 형식의 객체
+   */
+  mapLocalMemosToTodayFlowResponse(localMemos, sortBy = 'SESSION', tagCategory = 'TYPE') {
+    const memos = this.mapLocalMemosToResponse(localMemos);
+    
+    // 기본 응답 구조
+    const response = {
+      memosByBook: {},
+      memosByTag: {},
+      totalMemoCount: memos.length
+    };
+
+    if (sortBy === 'BOOK' || sortBy === 'SESSION') {
+      // 책별로 그룹화
+      memos.forEach(memo => {
+        const bookId = memo.userBookId;
+        if (!response.memosByBook[bookId]) {
+          response.memosByBook[bookId] = {
+            bookId: memo.userBookId,
+            memos: []
+          };
+        }
+        response.memosByBook[bookId].memos.push(memo);
+      });
+    }
+
+    if (sortBy === 'TAG') {
+      // 태그별로 그룹화
+      memos.forEach(memo => {
+        if (memo.tags && memo.tags.length > 0) {
+          memo.tags.forEach(tag => {
+            // 태그 대분류 필터링 (간단한 구현)
+            if (!response.memosByTag[tag]) {
+              response.memosByTag[tag] = {
+                tagCode: tag,
+                memos: []
+              };
+            }
+            response.memosByTag[tag].memos.push(memo);
+          });
+        }
+      });
+    }
+
+    return response;
   },
 
   /**

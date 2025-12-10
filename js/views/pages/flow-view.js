@@ -524,14 +524,53 @@ class FlowView {
     }
     
     // 그룹화 방식에 따라 렌더링
-    if (this.currentGrouping === 'TAG' && memosByTag) {
-      this.renderMemosByTag(memosByTag);
-    } else if (this.currentGrouping === 'SESSION' && memosByBook) {
-      // 섹션별 그룹화: 독서 세션 순서로 그룹화
-      this.renderMemosBySession(memosByBook);
-    } else if (memosByBook) {
-      // 책별 그룹화: 책별로 그룹화
-      this.renderMemosByBook(memosByBook);
+    // 데이터 객체가 비어있지 않은지 확인하는 헬퍼 함수
+    const hasData = (obj) => obj && typeof obj === 'object' && Object.keys(obj).length > 0;
+    
+    // 디버깅: 현재 그룹화 방식과 데이터 존재 여부 확인
+    console.log('[FlowView] renderMemos - currentGrouping:', this.currentGrouping);
+    console.log('[FlowView] renderMemos - hasData(memosByBook):', hasData(memosByBook));
+    console.log('[FlowView] renderMemos - hasData(memosByTag):', hasData(memosByTag));
+    
+    // 그룹화 방식에 따라 명시적으로 분기 처리
+    if (this.currentGrouping === 'TAG') {
+      // TAG 모드: memosByTag가 있고 비어있지 않으면 렌더링
+      if (hasData(memosByTag)) {
+        console.log('[FlowView] renderMemos - 렌더링: renderMemosByTag');
+        this.renderMemosByTag(memosByTag);
+      } else {
+        // memosByTag가 없거나 비어있으면 빈 상태 표시
+        console.warn('[FlowView] renderMemos - TAG 모드인데 memosByTag가 없음');
+        this.showEmptyState();
+      }
+    } else if (this.currentGrouping === 'SESSION') {
+      // SESSION 모드: memosByBook이 있고 비어있지 않으면 섹션별 렌더링
+      if (hasData(memosByBook)) {
+        console.log('[FlowView] renderMemos - 렌더링: renderMemosBySession');
+        this.renderMemosBySession(memosByBook);
+      } else {
+        // memosByBook이 없거나 비어있으면 빈 상태 표시
+        console.warn('[FlowView] renderMemos - SESSION 모드인데 memosByBook이 없음');
+        this.showEmptyState();
+      }
+    } else if (this.currentGrouping === 'BOOK') {
+      // BOOK 모드: memosByBook이 있고 비어있지 않으면 책별 렌더링
+      if (hasData(memosByBook)) {
+        console.log('[FlowView] renderMemos - 렌더링: renderMemosByBook');
+        this.renderMemosByBook(memosByBook);
+      } else {
+        // memosByBook이 없거나 비어있으면 빈 상태 표시
+        console.warn('[FlowView] renderMemos - BOOK 모드인데 memosByBook이 없음');
+        this.showEmptyState();
+      }
+    } else {
+      // 알 수 없는 그룹화 방식: 기본값으로 BOOK 렌더링
+      console.warn('[FlowView] renderMemos - 알 수 없는 그룹화 방식:', this.currentGrouping, ', 기본값으로 BOOK 렌더링');
+      if (hasData(memosByBook)) {
+        this.renderMemosByBook(memosByBook);
+      } else {
+        this.showEmptyState();
+      }
     }
     
     // renderMemosByBook에서 마지막 페이지인 경우에만 메모 에디터를 삽입하므로
@@ -1326,8 +1365,8 @@ class FlowView {
       }
     }
     
-    // 메모 다시 로드
-    this.loadMemoFlow();
+    // 메모 다시 로드 (그룹화 방식 명시적으로 전달하여 상태 일관성 보장)
+    this.loadMemoFlow(null, grouping);
   }
 
   /**
@@ -1424,7 +1463,14 @@ class FlowView {
       // 수정 모드인지 확인
       if (this.editingMemoId) {
         // 메모 수정
+        // 페이지 번호 검증
+        if (!memoData.pageNumber || memoData.pageNumber < 1) {
+          alert('페이지 번호를 입력해주세요. (1 이상의 숫자)');
+          return;
+        }
+        
         const updateData = {
+          pageNumber: memoData.pageNumber, // 페이지 번호도 수정 가능
           content: memoData.content,
           tags: memoData.tags || [],
           tagCategory: memoData.tagCategory || 'TYPE', // 태그 대분류 (기본값: TYPE)
@@ -1435,7 +1481,7 @@ class FlowView {
         // 수정 모드 해제
         this.editingMemoId = null;
         
-        // 페이지 번호 입력 필드 활성화
+        // 페이지 번호 입력 필드 활성화 (이미 활성화되어 있음)
         if (this.memoEditor && this.memoEditor.memoPageInput) {
           this.memoEditor.memoPageInput.disabled = false;
           this.memoEditor.memoPageInput.title = '';
@@ -1617,10 +1663,10 @@ class FlowView {
         this.memoInputContainer.style.display = 'block';
       }
       
-      // 페이지 번호 입력 필드 비활성화 (수정 불가)
+      // 페이지 번호 입력 필드 활성화 (수정 가능)
       if (this.memoEditor.memoPageInput) {
-        this.memoEditor.memoPageInput.disabled = true;
-        this.memoEditor.memoPageInput.title = '페이지 번호는 수정할 수 없습니다.';
+        this.memoEditor.memoPageInput.disabled = false;
+        this.memoEditor.memoPageInput.title = '';
       }
       
       // 저장 버튼 텍스트 변경

@@ -279,13 +279,10 @@ export class MemoEditor {
     const content = this.memoInput ? this.memoInput.value.trim() : '';
     const pageNumber = this.memoPageInput ? parseInt(this.memoPageInput.value, 10) : null;
     
-    // 수정 모드가 아닐 때만 페이지 번호 검증
-    const isEditMode = this.memoPageInput && this.memoPageInput.disabled;
-    if (!isEditMode) {
-      if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
-        alert('페이지 번호를 입력해주세요. (1 이상의 숫자)');
-        return;
-      }
+    // 페이지 번호 검증 (수정 모드에서도 페이지 번호 수정 가능하므로 항상 검증)
+    if (!pageNumber || isNaN(pageNumber) || pageNumber < 1) {
+      alert('페이지 번호를 입력해주세요. (1 이상의 숫자)');
+      return;
     }
     
     if (!content) {

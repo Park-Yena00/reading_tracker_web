@@ -61,12 +61,19 @@ export const authHelper = {
     try {
       const response = await authService.login(loginData);
       
+      // 응답 데이터 검증
+      if (!response) {
+        throw new Error('로그인 응답이 없습니다.');
+      }
+      
       // 토큰이 없는 경우 에러 처리
       if (!response?.accessToken) {
+        console.error('[AuthHelper] 로그인 응답에 accessToken이 없습니다:', response);
         throw new Error('로그인 응답에 accessToken이 없습니다.');
       }
       
       if (!response?.refreshToken) {
+        console.error('[AuthHelper] 로그인 응답에 refreshToken이 없습니다:', response);
         throw new Error('로그인 응답에 refreshToken이 없습니다.');
       }
       
@@ -74,17 +81,29 @@ export const authHelper = {
       tokenManager.setTokens(response.accessToken, response.refreshToken);
       
       // 사용자 정보 설정 (내부에서 이벤트 자동 발행)
-      authState.setUser(response.user);
+      // user가 없어도 로그인은 성공으로 처리 (선택적)
+      if (response.user) {
+        authState.setUser(response.user);
+      } else {
+        console.warn('[AuthHelper] 로그인 응답에 user 정보가 없습니다:', response);
+        // user 정보가 없어도 토큰이 있으면 로그인 성공으로 처리
+        // 이후 사용자 정보는 별도 API로 조회 가능
+      }
       
       return {
         success: true,
-        user: response.user,
+        user: response.user || null,
       };
     } catch (error) {
       console.error('[AuthHelper] 로그인 실패:', error);
       
       // 필드별 에러 메시지 처리
       let errorMessage = error.message || '로그인에 실패했습니다.';
+      
+      // 네트워크 에러 처리
+      if (error.isNetworkError || error.name === 'NetworkError') {
+        errorMessage = '서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.';
+      }
       
       // API 에러 응답에서 필드 에러 정보 추출
       if (error.fieldErrors && error.fieldErrors.length > 0) {
