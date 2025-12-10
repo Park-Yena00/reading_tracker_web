@@ -8,6 +8,9 @@ import { apiClient } from './api-client.js';
 import { API_ENDPOINTS } from '../constants/api-endpoints.js';
 import { offlineMemoService } from './offline-memo-service.js';
 import { networkMonitor } from '../utils/network-monitor.js';
+import { MemoOperationHelper } from '../utils/memo-operation-helper.js';
+import { syncStateManager } from '../utils/sync-state-manager.js';
+import { requestQueueManager } from '../utils/request-queue-manager.js';
 
 export const memoService = {
   /**
@@ -44,90 +47,223 @@ export const memoService = {
   },
 
   /**
-   * 메모 작성 (온라인/오프라인 자동 처리)
-   * 항상 로컬 저장소에 먼저 저장하고, 온라인 상태면 즉시 동기화 시도
+   * 메모 작성 (하이브리드 전략: 네트워크 상태 기반 분기)
+   * - 온라인: 서버 우선 처리 후 IndexedDB 갱신
+   * - 오프라인: 로컬 우선 처리 (Offline-First)
+   * - 동기화 중: 요청 큐잉 (질문 6-1 개선)
    * @param {Object} memoData - 메모 작성 데이터
    * @param {number} memoData.userBookId - 사용자 책 ID
    * @param {number} [memoData.pageNumber] - 페이지 번호
    * @param {string} memoData.content - 메모 내용
    * @param {Array<string>} [memoData.tags] - 태그 코드 리스트
    * @param {string} [memoData.memoStartTime] - 메모 시작 시간 (ISO 8601 형식, 기본값: 현재 시간)
-   * @returns {Promise<Object>} MemoResponse (로컬 메모를 MemoResponse 형식으로 변환)
+   * @returns {Promise<Object>} MemoResponse
    */
   async createMemo(memoData) {
-    // 항상 로컬 저장소에 먼저 저장 (Offline-First)
-    const localMemo = await offlineMemoService.createMemo(memoData);
-
-    // 온라인 상태면 즉시 동기화 시도, 오프라인이면 대기
     if (networkMonitor.isOnline) {
-      // 백그라운드에서 동기화 (await 하지 않음)
-      offlineMemoService.syncPendingMemos().catch(error => {
-        console.error('백그라운드 동기화 실패:', error);
-      });
-    }
+      // 동기화 중이면 요청 큐에 추가 (질문 6-1 개선)
+      if (syncStateManager.isSyncing) {
+        console.log('[MemoService] 동기화 중이므로 요청 큐에 추가: createMemo');
+        return await requestQueueManager.enqueue(
+          () => this.createMemo(memoData),
+          { type: 'create', data: memoData }
+        );
+      }
 
-    // 로컬 메모를 즉시 반환 (낙관적 업데이트)
-    return this.mapLocalMemoToResponse(localMemo);
+      // 온라인: 서버 우선 전략
+      try {
+        // 1. 서버에서 먼저 생성 시도
+        const serverMemo = await apiClient.post(API_ENDPOINTS.MEMOS.CREATE, memoData);
+        
+        // 2. 성공 시 IndexedDB 갱신
+        const localMemo = await MemoOperationHelper.updateLocalAfterCreate(serverMemo);
+        
+        // 3. 서버 메모 반환 (로컬 메모가 삭제된 경우 null이므로 서버 메모 반환)
+        return localMemo ? this.mapLocalMemoToResponse(localMemo) : serverMemo;
+      } catch (error) {
+        // 서버 실패 시 오프라인 모드로 전환
+        return await MemoOperationHelper.handleServerError(
+          error,
+          null,
+          async () => {
+            // 오프라인 로직: 로컬 저장소에 먼저 저장
+            const localMemo = await offlineMemoService.createMemo(memoData);
+            return this.mapLocalMemoToResponse(localMemo);
+          }
+        );
+      }
+    } else {
+      // 오프라인: 로컬 우선 전략 (기존 로직)
+      const localMemo = await offlineMemoService.createMemo(memoData);
+      return this.mapLocalMemoToResponse(localMemo);
+    }
   },
 
   /**
-   * 메모 수정 (온라인/오프라인 자동 처리)
-   * 로컬 저장소에 먼저 저장하고, 온라인 상태면 즉시 동기화 시도
+   * 메모 수정 (하이브리드 전략: 네트워크 상태 기반 분기)
+   * - 온라인: 서버 우선 처리 후 IndexedDB 갱신
+   * - 오프라인: 로컬 우선 처리 (Offline-First)
+   * - 동기화 중: 요청 큐잉 (질문 6-1 개선)
    * @param {string|number} memoId - 메모 ID (localId 또는 serverId)
    * @param {Object} memoData - 메모 수정 데이터
    * @param {string} [memoData.content] - 메모 내용
    * @param {Array<string>} [memoData.tags] - 태그 코드 리스트
    * @param {number} [memoData.pageNumber] - 페이지 번호
    * @param {string} [memoData.memoStartTime] - 메모 시작 시간
-   * @returns {Promise<Object>} MemoResponse (로컬 메모를 MemoResponse 형식으로 변환)
+   * @returns {Promise<Object>} MemoResponse
    */
   async updateMemo(memoId, memoData) {
-    // 오프라인 메모 서비스를 통해 수정 (로컬 저장 및 동기화 큐 추가)
-    const localMemo = await offlineMemoService.updateMemo(memoId, memoData);
-
-    // 온라인 상태면 즉시 동기화 시도, 오프라인이면 대기
     if (networkMonitor.isOnline) {
-      // 백그라운드에서 동기화 (await 하지 않음)
-      offlineMemoService.syncPendingMemos().catch(error => {
-        console.error('백그라운드 동기화 실패:', error);
-      });
-    }
+      // 동기화 중이면 요청 큐에 추가 (질문 6-1 개선)
+      if (syncStateManager.isSyncing) {
+        console.log('[MemoService] 동기화 중이므로 요청 큐에 추가: updateMemo');
+        return await requestQueueManager.enqueue(
+          () => this.updateMemo(memoId, memoData),
+          { type: 'update', memoId, data: memoData }
+        );
+      }
 
-    // 로컬 메모를 즉시 반환 (낙관적 업데이트)
-    return this.mapLocalMemoToResponse(localMemo);
+      // 온라인: 서버 우선 전략
+      try {
+        // 1. 로컬 메모 조회 (serverId 확인용)
+        const localMemo = await MemoOperationHelper.getLocalMemo(memoId);
+        
+        if (!localMemo) {
+          // 로컬에 없으면 서버에서 조회 시도
+          try {
+            const serverMemo = await apiClient.get(API_ENDPOINTS.MEMOS.GET(memoId));
+            // 서버에 존재하면 수정 시도
+            const updatedServerMemo = await apiClient.put(
+              API_ENDPOINTS.MEMOS.UPDATE(memoId),
+              memoData
+            );
+            // IndexedDB 갱신
+            await MemoOperationHelper.updateLocalAfterUpdate(memoId, updatedServerMemo);
+            return updatedServerMemo;
+          } catch (error) {
+            throw new Error('메모를 찾을 수 없습니다.');
+          }
+        }
+
+        // 2. serverId가 있으면 서버에서 수정 시도
+        if (localMemo.serverId) {
+          const updatedServerMemo = await apiClient.put(
+            API_ENDPOINTS.MEMOS.UPDATE(localMemo.serverId),
+            memoData
+          );
+          
+          // 3. 성공 시 IndexedDB 갱신
+          const updatedLocalMemo = await MemoOperationHelper.updateLocalAfterUpdate(
+            localMemo.serverId,
+            updatedServerMemo
+          );
+          
+          return updatedLocalMemo 
+            ? this.mapLocalMemoToResponse(updatedLocalMemo)
+            : updatedServerMemo;
+        } else {
+          // serverId가 없으면 오프라인 로직으로 전환
+          return await offlineMemoService.updateMemo(memoId, memoData)
+            .then(localMemo => this.mapLocalMemoToResponse(localMemo));
+        }
+      } catch (error) {
+        // 서버 실패 시 오프라인 모드로 전환
+        return await MemoOperationHelper.handleServerError(
+          error,
+          memoId,
+          async () => {
+            const localMemo = await offlineMemoService.updateMemo(memoId, memoData);
+            return this.mapLocalMemoToResponse(localMemo);
+          }
+        );
+      }
+    } else {
+      // 오프라인: 로컬 우선 전략 (기존 로직)
+      const localMemo = await offlineMemoService.updateMemo(memoId, memoData);
+      return this.mapLocalMemoToResponse(localMemo);
+    }
   },
 
   /**
-   * 메모 삭제 (온라인/오프라인 자동 처리)
-   * 로컬 저장소에서 삭제 표시하고, 온라인 상태면 즉시 동기화 시도
+   * 메모 삭제 (하이브리드 전략: 네트워크 상태 기반 분기)
+   * - 온라인: 서버 우선 처리 후 IndexedDB 갱신
+   * - 오프라인: 로컬 우선 처리 (Offline-First)
+   * - 동기화 중: 요청 큐잉 (질문 6-1 개선)
    * @param {string|number} memoId - 메모 ID (localId 또는 serverId)
    * @returns {Promise<Object>} 삭제 결과
    */
   async deleteMemo(memoId) {
-    // 오프라인 메모 서비스를 통해 삭제 (로컬 저장 및 동기화 큐 추가)
-    const result = await offlineMemoService.deleteMemo(memoId);
-
-    // 온라인 상태면 즉시 동기화 시도, 오프라인이면 대기
     if (networkMonitor.isOnline) {
-      // 백그라운드에서 동기화 (await 하지 않음)
-      offlineMemoService.syncPendingMemos().catch(error => {
-        console.error('백그라운드 동기화 실패:', error);
-      });
-    }
+      // 동기화 중이면 요청 큐에 추가 (질문 6-1 개선)
+      if (syncStateManager.isSyncing) {
+        console.log('[MemoService] 동기화 중이므로 요청 큐에 추가: deleteMemo');
+        return await requestQueueManager.enqueue(
+          () => this.deleteMemo(memoId),
+          { type: 'delete', memoId }
+        );
+      }
 
-    // 삭제 결과 반환
-    if (result.deleted && result.localOnly) {
-      // 아직 동기화되지 않은 메모는 즉시 삭제됨
-      return { message: '메모가 삭제되었습니다.' };
+      // 온라인: 서버 우선 전략
+      try {
+        // 1. 로컬 메모 조회 (serverId 확인용)
+        const localMemo = await MemoOperationHelper.getLocalMemo(memoId);
+        
+        let serverId = memoId;
+        if (localMemo && localMemo.serverId) {
+          serverId = localMemo.serverId;
+        } else if (!localMemo) {
+          // 로컬에 없으면 서버에서 삭제 시도 (서버에만 존재할 수 있음)
+          serverId = memoId;
+        } else {
+          // serverId가 없는 로컬 메모는 오프라인 로직으로 전환
+          return await offlineMemoService.deleteMemo(memoId)
+            .then(result => {
+              if (result.deleted && result.localOnly) {
+                return { message: '메모가 삭제되었습니다.' };
+              } else {
+                return { message: '메모 삭제가 예약되었습니다. 네트워크 복구 시 자동 동기화됩니다.' };
+              }
+            });
+        }
+
+        // 2. 서버에서 먼저 삭제 시도
+        await apiClient.delete(API_ENDPOINTS.MEMOS.DELETE(serverId));
+        
+        // 3. 성공 시 IndexedDB 갱신
+        await MemoOperationHelper.updateLocalAfterDelete(serverId);
+        
+        return { message: '메모가 삭제되었습니다.' };
+      } catch (error) {
+        // 서버 실패 시 오프라인 모드로 전환
+        return await MemoOperationHelper.handleServerError(
+          error,
+          memoId,
+          async () => {
+            const result = await offlineMemoService.deleteMemo(memoId);
+            if (result.deleted && result.localOnly) {
+              return { message: '메모가 삭제되었습니다.' };
+            } else {
+              return { message: '메모 삭제가 예약되었습니다. 네트워크 복구 시 자동 동기화됩니다.' };
+            }
+          }
+        );
+      }
     } else {
-      // 동기화 대기 중인 메모
-      return { message: '메모 삭제가 예약되었습니다. 네트워크 복구 시 자동 동기화됩니다.' };
+      // 오프라인: 로컬 우선 전략 (기존 로직)
+      const result = await offlineMemoService.deleteMemo(memoId);
+      
+      if (result.deleted && result.localOnly) {
+        return { message: '메모가 삭제되었습니다.' };
+      } else {
+        return { message: '메모 삭제가 예약되었습니다. 네트워크 복구 시 자동 동기화됩니다.' };
+      }
     }
   },
 
   /**
    * 특정 책의 메모 조회 (로컬 + 서버 통합)
    * 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장
+   * 동기화 완료 후 서버에서 조회 (질문 6 개선)
    * @param {number} userBookId - 사용자 책 ID
    * @param {string} [date] - 조회할 날짜 (ISO 8601 형식: YYYY-MM-DD, 선택사항)
    * @returns {Promise<Array<Object>>} MemoResponse 리스트 (로컬 메모와 서버 메모 통합)
@@ -138,9 +274,23 @@ export const memoService = {
 
     // 온라인 상태면 서버에서도 조회하여 통합
     if (networkMonitor.isOnline) {
+      // 동기화 중이면 로컬 메모만 반환 (질문 6 개선)
+      if (syncStateManager.isSyncing) {
+        console.log('[MemoService] 동기화 중이므로 로컬 메모만 반환');
+        return this.mapLocalMemosToResponse(localMemos);
+      }
+
+      // 동기화 완료 대기 (질문 6 개선)
+      const isSyncComplete = await syncStateManager.waitForSyncComplete();
+      if (!isSyncComplete) {
+        console.warn('[MemoService] 동기화 완료 대기 타임아웃, 로컬 메모만 반환');
+        return this.mapLocalMemosToResponse(localMemos);
+      }
+
+      // 동기화 완료 후 서버에서 조회
       try {
-    const params = {};
-    if (date) params.date = date;
+        const params = {};
+        if (date) params.date = date;
     
         const serverMemos = await apiClient.get(API_ENDPOINTS.MEMOS.BY_BOOK(userBookId), params);
 
@@ -149,14 +299,9 @@ export const memoService = {
         const sevenDaysAgo = new Date(today);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+        // 하이브리드 전략: 최근 7일 메모만 IndexedDB에 저장 (공통 로직 사용)
         for (const serverMemo of serverMemos) {
-          const memoDate = new Date(serverMemo.memoStartTime || serverMemo.createdAt);
-          
-          // 최근 7일 메모만 IndexedDB에 저장 (오프라인 조회용)
-          if (memoDate >= sevenDaysAgo) {
-            await offlineMemoService.saveServerMemoAsLocal(serverMemo);
-          }
-          // 오래된 메모는 저장하지 않음 (서버에서만 조회)
+          await MemoOperationHelper.saveServerMemoAsLocal(serverMemo);
         }
 
         // 로컬 메모와 서버 메모 통합

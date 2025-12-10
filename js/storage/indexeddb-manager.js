@@ -45,6 +45,17 @@ class IndexedDBManager {
                     });
                     queueStore.createIndex('status', 'status', { unique: false });
                     queueStore.createIndex('localMemoId', 'localMemoId', { unique: false });
+                    queueStore.createIndex('localBookId', 'localBookId', { unique: false });
+                }
+
+                // offline_books 테이블
+                if (!db.objectStoreNames.contains('offline_books')) {
+                    const bookStore = db.createObjectStore('offline_books', {
+                        keyPath: 'localId'
+                    });
+                    bookStore.createIndex('syncStatus', 'syncStatus', { unique: false });
+                    bookStore.createIndex('serverId', 'serverId', { unique: false });
+                    bookStore.createIndex('category', 'category', { unique: false });
                 }
             };
         });
@@ -195,6 +206,127 @@ class IndexedDBManager {
             const store = transaction.objectStore('offline_memos');
             const request = store.getAll();
             request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // ========== 내 서재 정보 (offline_books) 관련 메서드 ==========
+
+    /**
+     * 내 서재 정보 저장
+     * @param {Object} book - 내 서재 정보 객체
+     * @returns {Promise<IDBRequest>}
+     */
+    async saveBook(book) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readwrite');
+            const store = transaction.objectStore('offline_books');
+            const request = store.put(book);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 로컬 ID로 내 서재 정보 조회
+     * @param {string} localId - 로컬 ID
+     * @returns {Promise<Object|null>} 내 서재 정보 객체 또는 null
+     */
+    async getBookByLocalId(localId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readonly');
+            const store = transaction.objectStore('offline_books');
+            const request = store.get(localId);
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 서버 ID로 내 서재 정보 조회
+     * @param {number} serverId - 서버 ID (userBookId)
+     * @returns {Promise<Object|null>} 내 서재 정보 객체 또는 null
+     */
+    async getBookByServerId(serverId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readonly');
+            const store = transaction.objectStore('offline_books');
+            const index = store.index('serverId');
+            const request = index.get(serverId);
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 모든 내 서재 정보 조회
+     * @returns {Promise<Array>} 모든 내 서재 정보 배열
+     */
+    async getAllBooks() {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readonly');
+            const store = transaction.objectStore('offline_books');
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 카테고리별 내 서재 정보 조회
+     * @param {string} category - 카테고리 (ToRead, Reading, AlmostFinished, Finished)
+     * @returns {Promise<Array>} 내 서재 정보 배열
+     */
+    async getBooksByCategory(category) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readonly');
+            const store = transaction.objectStore('offline_books');
+            const index = store.index('category');
+            const request = index.getAll(category);
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * 내 서재 정보 업데이트 (서버 ID 설정)
+     * @param {string} localId - 로컬 ID
+     * @param {number} serverId - 서버 ID (userBookId)
+     * @returns {Promise<IDBRequest>}
+     */
+    async updateBookWithServerId(localId, serverId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readwrite');
+            const store = transaction.objectStore('offline_books');
+            const getRequest = store.get(localId);
+            
+            getRequest.onsuccess = () => {
+                const book = getRequest.result;
+                if (book) {
+                    book.serverId = serverId;
+                    book.syncStatus = 'synced';
+                    const putRequest = store.put(book);
+                    putRequest.onsuccess = () => resolve(putRequest.result);
+                    putRequest.onerror = () => reject(putRequest.error);
+                } else {
+                    resolve(null);
+                }
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
+    /**
+     * 내 서재 정보 삭제
+     * @param {string} localId - 로컬 ID
+     * @returns {Promise<IDBRequest>}
+     */
+    async deleteBook(localId) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['offline_books'], 'readwrite');
+            const store = transaction.objectStore('offline_books');
+            const request = store.delete(localId);
+            request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }

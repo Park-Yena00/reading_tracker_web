@@ -1,6 +1,9 @@
 // 메인 JavaScript 파일
 // DOM이 로드된 후 실행
 
+// NetworkStateManager 초기화 (이벤트 기반 상태 전환 처리)
+import { networkStateManager } from './utils/network-state-manager.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('독서 기록 사이트가 로드되었습니다.');
     
@@ -9,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 초기화 함수들
     initializeApp();
+    
+    // NetworkStateManager 초기화 확인
+    console.log('NetworkStateManager 초기화 완료:', networkStateManager.getState());
 });
 
 /**

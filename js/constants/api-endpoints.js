@@ -47,6 +47,7 @@ export const API_ENDPOINTS = {
     TODAY_FLOW: '/today-flow',
     LIST: '/memos',
     CREATE: '/memos',
+    GET: (memoId) => `/memos/${memoId}`,
     UPDATE: (memoId) => `/memos/${memoId}`,
     DELETE: (memoId) => `/memos/${memoId}`,
     BY_BOOK: (userBookId) => `/memos/books/${userBookId}`,

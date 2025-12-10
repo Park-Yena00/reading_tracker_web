@@ -8,10 +8,36 @@ import { syncQueueManager } from './sync-queue-manager.js';
 import { networkMonitor } from '../utils/network-monitor.js';
 import { apiClient } from './api-client.js';
 import { API_ENDPOINTS } from '../constants/api-endpoints.js';
+import { eventBus } from '../utils/event-bus.js';
+import { syncStateManager } from '../utils/sync-state-manager.js';
 
 class OfflineMemoService {
     constructor() {
         this.isInitialized = false;
+        this.setupEventHandlers();
+    }
+
+    /**
+     * 이벤트 핸들러 설정 (이벤트 기반 상태 전환 처리)
+     */
+    setupEventHandlers() {
+        // 네트워크 온라인 전환 시 동기화 큐 처리
+        eventBus.subscribe('network:online', async (data) => {
+            if (data && data.processQueue) {
+                try {
+                    await this.syncPendingMemos();
+                } catch (error) {
+                    console.error('네트워크 온라인 전환 시 동기화 실패:', error);
+                }
+            }
+        });
+
+        // 네트워크 오프라인 전환 시 처리
+        eventBus.subscribe('network:offline', async (data) => {
+            if (data && data.queueOperations) {
+                console.log('네트워크 오프라인 전환: 동기화 대기 상태로 전환');
+            }
+        });
     }
 
     /**
@@ -374,21 +400,28 @@ class OfflineMemoService {
             }
         }
 
-        // 동기화 큐에서 PENDING 항목 조회
-        const pendingQueueItems = await syncQueueManager.getPendingItems();
-        console.log(`동기화할 항목 수: ${pendingQueueItems.length}`);
+        // 동기화 큐에서 PENDING 항목 조회 (메모 관련 항목만)
+        const allPendingItems = await syncQueueManager.getPendingItems();
+        const pendingMemoItems = allPendingItems.filter(item => item.localMemoId);
+        console.log(`동기화할 메모 항목 수: ${pendingMemoItems.length}`);
+
+        // 동기화 시작 (동기화 상태 추적)
+        // 모든 PENDING 항목(메모 + 내 서재 정보)을 고려하여 시작
+        if (allPendingItems.length > 0 && !syncStateManager.isSyncing) {
+            syncStateManager.startSync(allPendingItems.length);
+        }
 
         let successCount = 0;
         let failedCount = 0;
 
         // 순서 보장: createdAt 기준 정렬
-        pendingQueueItems.sort((a, b) => {
+        pendingMemoItems.sort((a, b) => {
             const timeA = new Date(a.createdAt);
             const timeB = new Date(b.createdAt);
             return timeA - timeB;
         });
 
-        for (const queueItem of pendingQueueItems) {
+        for (const queueItem of pendingMemoItems) {
             // 이미 'SYNCING' 상태인 항목은 건너뛰기 (다른 프로세스가 처리 중)
             if (queueItem.status === 'SYNCING') {
                 console.log(`동기화 중인 항목 건너뛰기: ${queueItem.id}`);
@@ -406,12 +439,25 @@ class OfflineMemoService {
             try {
                 await this.syncQueueItem(queueItem);
                 successCount++;
+                
+                // 동기화 진행 상태 업데이트 (모든 PENDING 항목 고려)
+                // 이번에 처리한 항목 수(1개)와 남은 항목 수를 전달
+                const remainingItems = await syncQueueManager.getPendingItems();
+                syncStateManager.updateSyncProgress(1, remainingItems.length);
             } catch (error) {
                 console.error(`동기화 실패 (${queueItem.id}):`, error);
                 failedCount++;
+                
+                // 동기화 진행 상태 업데이트 (실패도 처리된 것으로 간주, 모든 PENDING 항목 고려)
+                // 이번에 처리한 항목 수(1개)와 남은 항목 수를 전달
+                const remainingItems = await syncQueueManager.getPendingItems();
+                syncStateManager.updateSyncProgress(1, remainingItems.length);
                 // 재시도 로직은 syncQueueManager에서 처리
             }
         }
+        
+        // 동기화 완료 확인 (모든 PENDING 항목이 처리되었는지)
+        await syncStateManager.checkSyncComplete();
         
         // 동기화 결과 반환 (토스트 메시지 표시에 사용)
         return { successCount, failedCount };

@@ -15,8 +15,10 @@ class SyncQueueManager {
      * 동기화 큐에 항목 추가
      * @param {Object} item - 큐 항목 데이터
      * @param {string} item.type - 작업 타입 ('CREATE', 'UPDATE', 'DELETE')
-     * @param {string} item.localMemoId - 로컬 메모 ID
+     * @param {string} [item.localMemoId] - 로컬 메모 ID (메모 작업 시)
+     * @param {string} [item.localBookId] - 로컬 내 서재 정보 ID (내 서재 정보 작업 시)
      * @param {number} [item.serverMemoId] - 서버 메모 ID (UPDATE/DELETE 시 필요)
+     * @param {number} [item.serverBookId] - 서버 내 서재 정보 ID (UPDATE/DELETE 시 필요)
      * @param {string} [item.status] - 큐 항목 상태 ('PENDING', 'WAITING', 'SYNCING', 'SUCCESS', 'FAILED')
      * @param {string} [item.originalQueueId] - 원본 큐 항목 ID (시나리오 2, 5: waiting 상태일 때 참조)
      * @param {string} [item.idempotencyKey] - 멱등성 키 (중복 요청 방지용)
@@ -27,8 +29,10 @@ class SyncQueueManager {
         const queueItem = {
             id: this.generateId(),
             type: item.type,
-            localMemoId: item.localMemoId,
+            localMemoId: item.localMemoId || null,
+            localBookId: item.localBookId || null,
             serverMemoId: item.serverMemoId || null, // UPDATE/DELETE 시 필요
+            serverBookId: item.serverBookId || null, // UPDATE/DELETE 시 필요
             data: item.data,
             status: item.status || 'PENDING', // waiting 상태 지원
             originalQueueId: item.originalQueueId || null, // 시나리오 2, 5: 원본 항목 참조
@@ -180,6 +184,17 @@ class SyncQueueManager {
                 queueItem.error = null;
                 await this.enqueue(queueItem);
                 // offlineMemoService.syncSingleMemo 호출은 offline-memo-service에서 처리
+            }
+        }
+        // 내 서재 정보 서비스를 통해 재동기화 시도
+        if (queueItem.localBookId) {
+            const localBook = await dbManager.getBookByLocalId(queueItem.localBookId);
+            if (localBook && localBook.syncStatus !== 'synced') {
+                queueItem.status = 'PENDING';
+                queueItem.retryCount = 0; // 재시도 횟수 초기화
+                queueItem.error = null;
+                await this.enqueue(queueItem);
+                // offlineBookService.syncSingleBook 호출은 offline-book-service에서 처리
             }
         }
     }
