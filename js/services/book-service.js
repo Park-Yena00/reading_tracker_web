@@ -226,24 +226,9 @@ export const bookService = {
           books: serverBooks
         };
       } catch (error) {
-        console.error('서버 내 서재 정보 조회 실패, IndexedDB 폴백 시도:', error);
-        
-        // 서버 실패 시에만 IndexedDB에서 조회 (오프라인 폴백)
-        let localBooks = [];
-        try {
-          if (category) {
-            localBooks = await offlineBookService.getBooksByCategory(category);
-          } else {
-            localBooks = await offlineBookService.getAllBooks();
-          }
-        } catch (localError) {
-          console.error('IndexedDB 조회도 실패:', localError);
-        }
-        
-        return {
-          totalCount: localBooks.length,
-          books: this.mapLocalBooksToResponse(localBooks)
-        };
+        // 해결 방안 2: 온라인 상태에서는 서버 실패 시에도 IndexedDB 폴백 사용 안 함
+        console.error('서버 내 서재 정보 조회 실패:', error);
+        throw error; // 에러를 다시 던져서 호출자가 처리하도록 함
       }
     } else {
       // 오프라인 상태면 IndexedDB에서만 조회
@@ -368,6 +353,9 @@ export const bookService = {
       }
 
       try {
+        const getUserDetailStartTime = Date.now();
+        console.log('[BookService] getUserBookDetail 시작:', new Date().toISOString(), 'userBookId:', userBookId);
+        
         // 서버에서 전체 서재 목록을 가져온 후 userBookId로 필터링
         const response = await apiClient.get(API_ENDPOINTS.BOOKS.USER_BOOKS, {});
         const books = response.books || [];
@@ -378,6 +366,11 @@ export const bookService = {
           const bookIdNum = typeof book.userBookId === 'string' ? parseInt(book.userBookId) : book.userBookId;
           return bookIdNum === userIdNum;
         });
+        
+        const getUserDetailEndTime = Date.now();
+        console.log('[BookService] getUserBookDetail 완료:', getUserDetailEndTime - getUserDetailStartTime, 'ms');
+        console.log('[BookService] getUserBookDetail 반환된 카테고리:', serverBook?.category);
+        console.log('[BookService] getUserBookDetail 전체 서재 수:', books.length);
         
         if (serverBook) {
           // IndexedDB에 캐시로 저장 (오프라인 대비, 비동기)
@@ -411,6 +404,7 @@ export const bookService = {
 
   /**
    * 독서 시작하기 (ToRead → Reading)
+   * 해결방안 1 적용: IndexedDB 업데이트 완료 대기
    * @param {number} userBookId - 사용자 도서 ID
    * @param {Object} startReadingData - 독서 시작 데이터
    * @param {string} startReadingData.readingStartDate - 독서 시작일 (YYYY-MM-DD)
@@ -419,8 +413,33 @@ export const bookService = {
    * @returns {Promise<string>} 성공 메시지
    */
   async startReading(userBookId, startReadingData) {
-    const response = await apiClient.post(API_ENDPOINTS.BOOKSHELF.START_READING(userBookId), startReadingData);
-    return response; // 성공 메시지 반환
+    const postStartTime = Date.now();
+    console.log('[BookService] startReading 시작:', new Date().toISOString());
+    
+    // 1. 서버 POST 요청 (카테고리 변경)
+    const postResponse = await apiClient.post(API_ENDPOINTS.BOOKSHELF.START_READING(userBookId), startReadingData);
+    const postEndTime = Date.now();
+    console.log('[BookService] POST 요청 완료:', postEndTime - postStartTime, 'ms');
+    
+    // 2. 서버에서 최신 데이터 조회
+    const getStartTime = Date.now();
+    const updatedServerBook = await this.getUserBookDetail(userBookId);
+    const getEndTime = Date.now();
+    console.log('[BookService] GET 요청 완료:', getEndTime - getStartTime, 'ms');
+    console.log('[BookService] POST-GET 간격:', getEndTime - postEndTime, 'ms');
+    console.log('[BookService] 반환된 카테고리:', updatedServerBook?.category);
+    
+    // 3. IndexedDB 업데이트 완료 대기 (해결 방안 1)
+    const indexedDBStartTime = Date.now();
+    await BookOperationHelper.updateLocalAfterUpdate(
+      userBookId,
+      updatedServerBook
+    );
+    const indexedDBEndTime = Date.now();
+    console.log('[BookService] IndexedDB 업데이트 완료:', indexedDBEndTime - indexedDBStartTime, 'ms');
+    console.log('[BookService] startReading 전체 완료:', indexedDBEndTime - postStartTime, 'ms');
+    
+    return '독서를 시작했습니다.';
   },
 
   /**

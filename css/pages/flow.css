@@ -47,16 +47,9 @@
 
 .flow-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: var(--spacing-xl);
-}
-
-.page-title {
-  font-size: var(--font-size-h1);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
 }
 
 .flow-header-actions {
@@ -65,16 +58,41 @@
   align-items: center;
 }
 
+/* 오늘의 흐름 버튼 색상 */
+#btn-select-book {
+  background-color: #b38b7a;
+  color: #ffffff;
+}
+
+#btn-select-book:hover {
+  background-color: #a77b6d;
+}
+
+#btn-home,
+#btn-close-book {
+  background-color: #c7a99b;
+  color: #2b161f;
+}
+
+#btn-home:hover,
+#btn-close-book:hover {
+  background-color: #b99585;
+}
+
 /* 2컬럼 레이아웃 */
 .flow-container {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   gap: var(--spacing-2xl);
   min-height: 600px;
+  width: 100%;
+  max-width: var(--max-width-container);
+  margin: 0 auto;
 }
 
 /* 좌측 네비게이션/필터 패널 */
 .flow-sidebar {
+  display: none;
   background-color: var(--color-bg-secondary);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-lg);
@@ -83,12 +101,26 @@
   top: var(--spacing-lg);
 }
 
-.date-header {
+.flow-calendar-bar {
+  display: grid;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-2xl);
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-default);
+  width: calc(100% - (280px + var(--spacing-2xl)));
+  margin-left: auto;
+  margin-right: auto;
+  transform: translateX(12px);
+}
+
+.flow-calendar-bar .date-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-md);
+  justify-content: flex-start;
+  margin-bottom: 0;
+  padding-bottom: var(--spacing-sm);
   border-bottom: 1px solid var(--color-border-default);
 }
 
@@ -98,21 +130,6 @@
   color: var(--color-text-primary);
 }
 
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: var(--spacing-xs);
-  transition: transform var(--transition-fast);
-}
-
-.btn-icon:hover {
-  transform: scale(1.1);
-}
-
-.grouping-section,
-.tag-category-section,
 .inline-calendar-section {
   margin-bottom: var(--spacing-xl);
 }
@@ -145,111 +162,57 @@
 }
 
 .inline-calendar-container .calendar-grid {
-  gap: 2px;
-}
-
-.inline-calendar-container .calendar-day-header {
-  font-size: var(--font-size-xs);
-  padding: 4px 2px;
-}
-
-.inline-calendar-container .calendar-day {
-  font-size: var(--font-size-xs);
-  min-height: 22px;
-  padding: 2px;
-}
-
-.inline-calendar-container .calendar-day.has-memo {
-  border: 2px solid #000;
-  border-radius: 50%;
-  background-color: transparent;
-}
-
-.section-label {
-  display: block;
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.grouping-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.grouping-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  text-align: left;
-}
-
-.grouping-btn:hover {
-  background-color: var(--color-bg-secondary);
-  border-color: var(--color-primary);
-}
-
-.grouping-btn.active {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-bold);
-  background-color: rgba(59, 130, 246, 0.1);
-  border-color: var(--color-primary);
-}
-
-/* 태그 대분류 Tab UI (사이드바) */
-.tag-category-tabs {
-  display: flex;
   gap: 0;
-  background-color: var(--color-bg-primary);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--border-radius-md);
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 16px);
+  padding: 0;
+  border-radius: 999px;
+  background-color: #ffffff;
+  border: 1px solid #000000;
   overflow: hidden;
 }
 
-.tag-category-tab {
-  flex: 1;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  background-color: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  border-right: 1px solid var(--color-border-default);
-  position: relative;
+.inline-calendar-container .calendar-day {
+  font-size: 0.65rem;
+  height: 16px;
+  padding: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background-color: #ffffff;
+  border: 0;
+  border-right: 1px solid #000000;
+  border-bottom: 1px solid #000000;
 }
 
-.tag-category-tab:last-child {
-  border-right: none;
+.inline-calendar-container .calendar-day.has-memo {
+  border: 0;
+  border-right: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  background-color: #9CBC8F;
+  border-radius: 0;
+}
+.inline-calendar-container .calendar-day.today {
+  border: 0;
+  border-right: 1px solid #000000;
+  border-bottom: 1px solid #000000;
+  padding: 0 2px;
 }
 
-.tag-category-tab:hover {
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
+.inline-calendar-container .calendar-day.today::after {
+  content: 'TODAY';
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
-.tag-category-tab.active {
-  background-color: var(--color-primary);
-  color: var(--color-text-white);
+.inline-calendar-container .calendar-day:nth-child(16n) {
+  border-right: 0;
 }
 
-.tag-category-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: var(--color-primary-dark);
+.inline-calendar-container .calendar-day:nth-child(n+17) {
+  border-bottom: 0;
 }
 
 /* 태그 대분류 Accordion UI (메모 에디터) */
@@ -314,44 +277,21 @@
   gap: var(--spacing-xl);
 }
 
-.selected-book-info {
-  padding: var(--spacing-lg);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--border-radius-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.selected-book-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.selected-book-text {
-  flex: 1;
-}
-
-.selected-book-title {
-  font-size: var(--font-size-h2);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs) 0;
-}
-
-.selected-book-author {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
 /* 바인더 노트 스타일 */
 .binder-note {
-  background: #f9f9f9;
+  background: #f7f7f9;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.08) 0px,
+    rgba(15, 23, 42, 0.08) 1px,
+    transparent 1px,
+    transparent 24px
+  );
   position: relative;
   padding: var(--spacing-2xl);
   border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 /* 메모 디스플레이 영역 */
@@ -363,12 +303,61 @@
   min-height: 400px; /* 메모가 없을 때 공간 확보 */
 }
 
+
 /* 책별 메모 섹션 */
 .memo-book-section {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
+
+/* 도서 인덱스 컬러바 */
+.memo-index-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-2xl);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: #ffffff;
+  border-radius: var(--border-radius-md);
+  border: 1px solid #ffffff;
+  width: calc(100% - (280px + var(--spacing-2xl)));
+  margin-left: auto;
+  margin-right: auto;
+  transform: translateX(12px);
+}
+
+.memo-index-bar-list {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  width: 100%;
+}
+
+.memo-index-bar-item {
+  width: 56px;
+  height: 12px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  flex: 0 0 auto;
+}
+
+.memo-index-bar-item:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.memo-index-bar-item.active {
+  opacity: 1;
+  outline: 2px solid rgba(0, 0, 0, 0.15);
+}
+
 
 /* 메모 섹션 그리드 (상->하) */
 .memo-section-grid {
@@ -380,16 +369,18 @@
 
 /* 메모 카드 */
 .memo-card {
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--border-radius-sm);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
+  background-color: #ffffff;
+  border: 1px solid rgba(90, 44, 62, 0.18);
+  border-radius: 18px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
   transition: box-shadow var(--transition-fast);
   height: auto;
   min-height: auto;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .memo-card:hover {
@@ -400,9 +391,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-sm);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--color-border-default);
+  margin-bottom: var(--spacing-xs);
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .memo-card-meta {
@@ -413,15 +404,15 @@
 
 .memo-card-time {
   font-size: var(--font-size-small);
-  color: var(--color-text-secondary);
+  color: rgba(90, 44, 62, 0.7);
 }
 
 .memo-card-page {
   font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  background-color: var(--color-bg-secondary);
-  padding: 2px var(--spacing-xs);
-  border-radius: var(--border-radius-sm);
+  color: rgba(90, 44, 62, 0.8);
+  background-color: rgba(179, 139, 122, 0.2);
+  padding: 2px var(--spacing-sm);
+  border-radius: 12px;
 }
 
 /* 동기화 상태 아이콘 */
@@ -452,10 +443,21 @@
   color: var(--color-text-primary);
   white-space: pre-wrap;
   word-wrap: break-word;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
   flex: 1;
   min-height: auto;
   height: auto;
+}
+
+.memo-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(247, 247, 249, 0.6));
+  pointer-events: none;
 }
 
 .memo-card-tags {
@@ -467,28 +469,29 @@
 
 .memo-tag {
   font-size: var(--font-size-small);
-  color: var(--color-primary);
-  background-color: var(--color-primary-alpha);
-  padding: 2px var(--spacing-xs);
-  border-radius: var(--border-radius-sm);
+  color: #5a2c3e;
+  background-color: rgba(201, 176, 186, 0.35);
+  padding: 2px var(--spacing-sm);
+  border-radius: 999px;
+  border: 1px solid rgba(90, 44, 62, 0.12);
 }
 
 /* 메모 섹션 헤더 (책 정보) - 상단 중앙 정렬 */
 .memo-section-header {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  padding: var(--spacing-md) 0;
-  border-bottom: 2px solid var(--color-border-default);
+  padding: var(--spacing-sm) 0 var(--spacing-md);
+  border-bottom: 0;
   width: 100%;
 }
 
 .memo-section-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-size: 1.4rem;
+  font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
-  text-align: center;
+  text-align: left;
 }
 
 /* 태그 섹션 (태그별 그룹화 모드) */
@@ -531,8 +534,9 @@
   margin-top: var(--spacing-lg);
   padding: var(--spacing-lg);
   background-color: rgba(255, 255, 255, 0.95);
-  border: 2px dashed var(--color-border-default);
-  border-radius: var(--border-radius-md);
+  border: 1.5px solid rgba(90, 44, 62, 0.2);
+  border-radius: 18px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
 }
 
 .book-selector-container {
@@ -555,16 +559,16 @@
 .memo-page-input {
   width: 150px;
   padding: var(--spacing-sm);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(90, 44, 62, 0.2);
+  border-radius: 12px;
   font-size: var(--font-size-base);
   font-family: inherit;
 }
 
 .memo-page-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-alpha);
+  border-color: #b38b7a;
+  box-shadow: 0 0 0 2px rgba(179, 139, 122, 0.25);
 }
 
 .tag-chips-container {
@@ -617,25 +621,26 @@
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
   font-family: inherit;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--color-text-primary);
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--border-radius-sm);
+  background-color: #ffffff;
+  border: 1.5px solid rgba(90, 44, 62, 0.22);
+  border-radius: 16px;
   resize: vertical;
-  min-height: 120px;
+  min-height: 140px;
 }
 
 .memo-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #b38b7a;
+  box-shadow: 0 0 0 3px rgba(179, 139, 122, 0.18);
 }
 
 .memo-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
 
 /* 빈 상태 */
@@ -721,13 +726,13 @@
 }
 
 .calendar-day:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: #d9a9bf;
   border-color: var(--color-primary);
 }
 
 .calendar-day.has-memo:hover {
   border-color: #000;
-  background-color: transparent;
+  background-color: #d9a9bf;
 }
 
 .calendar-day.other-month {
@@ -751,14 +756,14 @@
 }
 
 .calendar-day.selected {
-  background-color: var(--color-primary);
+  background-color: #d9a9bf;
   color: white;
   border-color: var(--color-primary);
 }
 
 .calendar-day.selected.has-memo {
   border-color: #000;
-  background-color: var(--color-primary);
+  background-color: #d9a9bf;
   color: white;
 }
 
@@ -776,6 +781,16 @@
 #book-selector-modal .modal-body.scrollable {
   max-height: 60vh;
   overflow-y: auto;
+}
+
+/* 오늘의 흐름: 책 선택 모달 오버레이 투명 처리 */
+#book-selector-modal.modal-overlay {
+  background-color: rgba(17, 24, 39, 0.08);
+}
+
+/* 오늘의 흐름: 책 덮기 모달 오버레이 */
+#close-book-modal.modal-overlay {
+  background-color: rgba(17, 24, 39, 0.08);
 }
 
 .book-selector-list {

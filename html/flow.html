@@ -31,7 +31,6 @@
             <div class="container">
                 <!-- 페이지 헤더 -->
                 <div class="flow-header">
-                    <h1 class="page-title">오늘의 흐름</h1>
                     <div class="flow-header-actions">
                         <button id="btn-select-book" class="btn btn-primary">
                             메모 작성
@@ -45,59 +44,35 @@
                     <div class="spinner spinner-large"></div>
                 </div>
                 
+                <!-- 캘린더 상단 바 -->
+                <div id="inline-calendar-section" class="inline-calendar-section flow-calendar-bar">
+                    <div class="date-header">
+                        <span id="current-date" class="current-date"></span>
+                    </div>
+                    <div id="inline-calendar-container" class="inline-calendar-container">
+                        <!-- 캘린더가 여기에 동적으로 렌더링됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 도서 인덱스 컬러바 -->
+                <div id="memo-index-bar" class="memo-index-bar" style="display: none;">
+                    <div id="memo-index-bar-list" class="memo-index-bar-list">
+                        <!-- 책별 인덱스가 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+                
                 <!-- 2컬럼 레이아웃 -->
                 <div class="flow-container">
                     <!-- 좌측 네비게이션/필터 패널 -->
                     <aside id="flow-sidebar" class="flow-sidebar">
-                        <!-- 날짜 선택 헤더 -->
-                        <div class="date-header">
-                            <span id="current-date" class="current-date"></span>
-                            <button id="btn-calendar" class="btn-icon" aria-label="캘린더 열기">
-                                📅
-                            </button>
-                        </div>
-                        
-                        <!-- 그룹화 선택 -->
-                        <div class="grouping-section">
-                            <label class="section-label">그룹화 방식</label>
-                            <div id="grouping-toggle" class="grouping-toggle">
-                                <button class="grouping-btn active" data-grouping="SESSION">세션</button>
-                                <button class="grouping-btn" data-grouping="BOOK">책별</button>
-                                <button class="grouping-btn" data-grouping="TAG">태그별</button>
-                            </div>
-                        </div>
-                        
-                        <!-- 태그 대분류 선택 (TAG 모드에서만 표시) -->
-                        <div id="tag-category-section" class="tag-category-section" style="display: none;">
-                            <label class="section-label">태그 대분류</label>
-                            <div id="tag-category-tabs" class="tag-category-tabs">
-                                <button class="tag-category-tab active" data-category="TYPE">유형</button>
-                                <button class="tag-category-tab" data-category="TOPIC">주제</button>
-                            </div>
-                        </div>
-                        
-                        <!-- 인라인 캘린더 (토글 가능) -->
-                        <div id="inline-calendar-section" class="inline-calendar-section" style="display: none;">
-                            <div id="inline-calendar-container" class="inline-calendar-container">
-                                <!-- 캘린더가 여기에 동적으로 렌더링됩니다 -->
-                            </div>
-                        </div>
                     </aside>
                     
                     <!-- 우측 메모 콘텐츠 영역 -->
                     <div class="flow-content">
-                        <!-- 선택된 책 정보 (첫 메모 작성 시 또는 책 전환 시 표시) -->
-                        <div id="selected-book-info" class="selected-book-info" style="display: none;">
-                            <div class="selected-book-header">
-                                <div class="selected-book-text">
-                                    <h2 id="selected-book-title" class="selected-book-title"></h2>
-                                    <p id="selected-book-author" class="selected-book-author"></p>
-                                </div>
-                                <button id="btn-close-book" class="btn btn-secondary">
-                                    책 덮기
-                                </button>
-                            </div>
-                        </div>
+                        <button id="btn-close-book" class="btn btn-secondary" style="display: none;">
+                            책 덮기
+                        </button>
+                        
                         
                         <!-- 메모 입력 모듈 (동적으로 메모 섹션 내부로 이동) -->
                         <div id="memo-editor" class="memo-editor binder-note" style="display: none;">
@@ -265,21 +240,6 @@
         <div id="footer"></div>
     </div>
     
-    <!-- 캘린더 모달 -->
-    <div id="calendar-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content calendar-modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">날짜 선택</h2>
-                <button class="modal-close" aria-label="닫기">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="calendar-container" class="calendar-container">
-                    <!-- 캘린더가 여기에 동적으로 렌더링됩니다 -->
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- 책 선택 모달 -->
     <div id="book-selector-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
@@ -318,7 +278,6 @@
     <script type="module" src="../js/views/common/modal.js"></script>
     
     <!-- 컴포넌트 -->
-    <script type="module" src="../js/components/calendar-modal.js"></script>
     <script type="module" src="../js/components/memo-card.js"></script>
     <script type="module" src="../js/components/memo-editor.js"></script>
     <script type="module" src="../js/components/book-selector.js"></script>

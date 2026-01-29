@@ -7,7 +7,6 @@ import { memoService } from '../../services/memo-service.js';
 import { bookService } from '../../services/book-service.js';
 import { authHelper } from '../../utils/auth-helper.js';
 import { MemoCard } from '../../components/memo-card.js';
-import { CalendarModal } from '../../components/calendar-modal.js';
 import { BookSelector } from '../../components/book-selector.js';
 import { MemoEditor } from '../../components/memo-editor.js';
 import { HeaderView } from '../common/header.js';
@@ -20,12 +19,10 @@ class FlowView {
     // DOM 요소
     this.loadingSpinner = null;
     this.currentDateEl = null;
-    this.btnCalendar = null;
-    this.groupingToggle = null;
-    this.tagCategoryToggle = null;
-    this.tagCategorySection = null;
     this.inlineCalendarSection = null;
     this.inlineCalendarContainer = null;
+    this.memoIndexBar = null;
+    this.memoIndexBarList = null;
     this.memoList = null;
     this.memoEditor = null;
     this.memoInput = null;
@@ -34,9 +31,6 @@ class FlowView {
     this.btnSelectBook = null;
     this.bookSelectorContainer = null;
     this.memoInputContainer = null;
-    this.selectedBookInfo = null;
-    this.selectedBookTitle = null;
-    this.selectedBookAuthor = null;
     this.emptyState = null;
     this.btnCloseBook = null;
     this.closeBookModal = null;
@@ -52,6 +46,8 @@ class FlowView {
     this.currentTagCategory = 'TYPE'; // TYPE, TOPIC
     this.selectedBookId = null; // 선택된 책의 userBookId
     this.selectedBook = null; // 선택된 책 정보
+    this.focusedBookId = null; // 인덱스 선택된 책
+    this.activeWritingBookId = null; // 메모 작성이 활성화된 책
     this.memos = []; // 현재 표시 중인 메모 목록
     this.editingMemoId = null; // 수정 중인 메모 ID
     this.isCalendarVisible = false; // 인라인 캘린더 표시 여부
@@ -65,9 +61,13 @@ class FlowView {
     this.totalPages = 1; // 전체 페이지 수
     
     // 컴포넌트
-    this.calendarModal = null;
     this.bookSelector = null;
     this.memoEditor = null;
+    this.bookIndexColors = new Map();
+    this.bookIndexPalette = ['#b38b7a', '#c7a99b', '#d9a9bf', '#c9b0ba', '#9cbc8f', '#a8c6a0'];
+    this.bookIndexData = new Map();
+    this.lastMemoResponse = null;
+    this.isTodayView = true;
     
     // 이벤트 구독 관리
     this.unsubscribers = [];
@@ -79,13 +79,11 @@ class FlowView {
     this.dateChangeIntervalId = null;
     
     // 이벤트 핸들러 바인딩 (destroy에서 제거하기 위해)
-    this.handleCalendarClick = this.handleCalendarClick.bind(this);
     this.handleInlineCalendarClick = this.handleInlineCalendarClick.bind(this);
-    this.handleGroupingToggleClick = this.handleGroupingToggleClick.bind(this);
-    this.handleTagCategoryToggleClick = this.handleTagCategoryToggleClick.bind(this);
     this.handleSelectBookClick = this.handleSelectBookClick.bind(this);
     this.handleHomeClick = this.handleHomeClick.bind(this);
     this.handleMemoListClick = this.handleMemoListClick.bind(this);
+    this.handleMemoIndexClick = this.handleMemoIndexClick.bind(this);
     
     // 보호된 페이지: 인증 확인 (비동기)
     this.initAuth();
@@ -114,12 +112,10 @@ class FlowView {
     // DOM 요소 선택
     this.loadingSpinner = document.getElementById('loading-spinner');
     this.currentDateEl = document.getElementById('current-date');
-    this.btnCalendar = document.getElementById('btn-calendar');
-    this.groupingToggle = document.getElementById('grouping-toggle');
-    this.tagCategoryToggle = document.getElementById('tag-category-tabs');
-    this.tagCategorySection = document.getElementById('tag-category-section');
     this.inlineCalendarSection = document.getElementById('inline-calendar-section');
     this.inlineCalendarContainer = document.getElementById('inline-calendar-container');
+    this.memoIndexBar = document.getElementById('memo-index-bar');
+    this.memoIndexBarList = document.getElementById('memo-index-bar-list');
     this.memoList = document.getElementById('memo-list');
     this.memoEditor = document.getElementById('memo-editor');
     this.memoInput = document.getElementById('memo-input');
@@ -127,9 +123,6 @@ class FlowView {
     this.btnSaveMemo = document.getElementById('btn-save-memo');
     this.btnSelectBook = document.getElementById('btn-select-book');
     this.memoInputContainer = document.getElementById('memo-input-container');
-    this.selectedBookInfo = document.getElementById('selected-book-info');
-    this.selectedBookTitle = document.getElementById('selected-book-title');
-    this.selectedBookAuthor = document.getElementById('selected-book-author');
     this.btnCloseBook = document.getElementById('btn-close-book');
     this.closeBookModal = document.getElementById('close-book-modal');
     this.closeBookModalClose = document.getElementById('close-book-modal-close');
@@ -157,9 +150,6 @@ class FlowView {
     // 이벤트 리스너 등록
     this.setupEventListeners();
     
-    // 캘린더 모달 초기화
-    this.calendarModal = new CalendarModal('calendar-modal');
-    
     // 책 선택 모달 초기화
     this.bookSelector = new BookSelector('book-selector-modal');
     
@@ -174,6 +164,7 @@ class FlowView {
     
     // 초기 데이터 로드
     this.loadMemoFlow();
+    this.renderInlineCalendar();
     
     // 날짜 변경 감지 (1분마다 확인)
     this.startDateChangeDetection();
@@ -183,28 +174,10 @@ class FlowView {
    * 이벤트 리스너 설정
    */
   setupEventListeners() {
-    // 캘린더 버튼 (인라인 캘린더 토글)
-    if (this.btnCalendar) {
-      this.btnCalendar.addEventListener('click', this.handleCalendarClick);
-      this.eventListeners.push({ element: this.btnCalendar, event: 'click', handler: this.handleCalendarClick });
-    }
-    
     // 인라인 캘린더 이벤트 위임
     if (this.inlineCalendarContainer) {
       this.inlineCalendarContainer.addEventListener('click', this.handleInlineCalendarClick);
       this.eventListeners.push({ element: this.inlineCalendarContainer, event: 'click', handler: this.handleInlineCalendarClick });
-    }
-    
-    // 그룹화 선택
-    if (this.groupingToggle) {
-      this.groupingToggle.addEventListener('click', this.handleGroupingToggleClick);
-      this.eventListeners.push({ element: this.groupingToggle, event: 'click', handler: this.handleGroupingToggleClick });
-    }
-    
-    // 태그 대분류 선택
-    if (this.tagCategoryToggle) {
-      this.tagCategoryToggle.addEventListener('click', this.handleTagCategoryToggleClick);
-      this.eventListeners.push({ element: this.tagCategoryToggle, event: 'click', handler: this.handleTagCategoryToggleClick });
     }
     
     // 책 선택 버튼
@@ -217,6 +190,12 @@ class FlowView {
     if (this.btnCloseBook) {
       this.btnCloseBook.addEventListener('click', this.handleCloseBookClick);
       this.eventListeners.push({ element: this.btnCloseBook, event: 'click', handler: this.handleCloseBookClick });
+    }
+
+    // 책 인덱스 클릭
+    if (this.memoIndexBar) {
+      this.memoIndexBar.addEventListener('click', this.handleMemoIndexClick);
+      this.eventListeners.push({ element: this.memoIndexBar, event: 'click', handler: this.handleMemoIndexClick });
     }
     
     // 책 덮기 모달 이벤트 리스너
@@ -269,13 +248,6 @@ class FlowView {
   }
 
   /**
-   * 캘린더 버튼 클릭 처리
-   */
-  handleCalendarClick() {
-    this.toggleInlineCalendar();
-  }
-
-  /**
    * 인라인 캘린더 클릭 이벤트 처리
    * @param {Event} e - 클릭 이벤트
    */
@@ -299,45 +271,37 @@ class FlowView {
   }
 
   /**
-   * 그룹화 토글 클릭 이벤트 처리
-   * @param {Event} e - 클릭 이벤트
-   */
-  handleGroupingToggleClick(e) {
-    const btn = e.target.closest('.grouping-btn');
-    if (btn) {
-      const grouping = btn.dataset.grouping;
-      this.handleGroupingChange(grouping);
-    }
-  }
-
-  /**
-   * 태그 대분류 토글 클릭 이벤트 처리
-   * @param {Event} e - 클릭 이벤트
-   */
-  handleTagCategoryToggleClick(e) {
-    const tab = e.target.closest('.tag-category-tab');
-    if (tab) {
-      const category = tab.dataset.category;
-      this.handleTagCategoryChange(category);
-      // 메모 에디터와는 연동하지 않음 (별개의 작업)
-    }
-  }
-
-  /**
    * 책 선택 버튼 클릭 처리
    * 메모 작성은 항상 오늘 날짜에서만 가능하므로, 다른 날짜를 보고 있다면 오늘 날짜로 전환
    */
   handleSelectBookClick() {
+    const openMemoEditorOrSelector = () => {
+      if (this.activeWritingBookId) {
+        if (!this.selectedBookId || String(this.selectedBookId) !== String(this.activeWritingBookId)) {
+          this.setFocusedBook(this.activeWritingBookId, { syncSelection: true });
+          if (this.lastMemoResponse) {
+            this.renderMemos(this.lastMemoResponse);
+          }
+        }
+        this.restoreMemoEditor();
+        if (this.memoInputContainer) {
+          this.memoInputContainer.style.display = 'block';
+        }
+        return;
+      }
+      this.showBookSelector();
+    };
+
     // 오늘 날짜로 전환
     const today = getTodayDateString();
     if (this.currentDate !== today) {
       // 오늘 날짜로 전환 후 책 선택 모달 표시
       this.loadMemoFlow(today).then(() => {
-        this.showBookSelector();
+        openMemoEditorOrSelector();
       });
     } else {
-      // 이미 오늘 날짜면 바로 책 선택 모달 표시
-      this.showBookSelector();
+      // 이미 오늘 날짜면 바로 메모 에디터 or 책 선택 모달 표시
+      openMemoEditorOrSelector();
     }
   }
 
@@ -376,8 +340,14 @@ class FlowView {
     this.setLoading(true);
     this.hideEmptyState();
     
+    const previousDate = this.currentDate;
     const targetDate = date || this.currentDate;
     const targetGrouping = grouping || this.currentGrouping;
+    const isToday = targetDate === getTodayDateString();
+    
+    if (previousDate !== targetDate) {
+      this.focusedBookId = null;
+    }
     
     try {
       const params = {
@@ -391,12 +361,15 @@ class FlowView {
       }
       
       const response = await memoService.getTodayFlow(params);
+      this.lastMemoResponse = response;
       
       this.currentDate = targetDate;
       this.currentGrouping = targetGrouping;
       
       // 날짜 표시 업데이트
       this.updateDateDisplay();
+      this.isTodayView = isToday;
+      this.updateActionButtonsVisibility(isToday);
       
       // 메모 렌더링
       this.renderMemos(response);
@@ -411,6 +384,7 @@ class FlowView {
         // 선택된 책이 있으면 빈 섹션 생성 및 메모 작성 UI 표시
         if (this.selectedBookId && this.selectedBook) {
           // 빈 메모 목록으로 renderMemos 호출하여 메모 작성 UI 표시
+          this.memos = [];
           this.renderMemos({ 
             memosByBook: {},
             memosByTag: {},
@@ -423,6 +397,8 @@ class FlowView {
             this.memoInputContainer.style.display = 'none';
           }
         }
+        this.isTodayView = isToday;
+        this.updateActionButtonsVisibility(isToday);
       } else {
         // 다른 에러는 사용자에게 알림
         alert('메모를 불러오는 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
@@ -434,17 +410,35 @@ class FlowView {
   }
 
   /**
+   * 날짜에 따른 버튼/편집 UI 노출 제어
+   * @param {boolean} isToday
+   */
+  updateActionButtonsVisibility(isToday) {
+    if (this.btnSelectBook) {
+      this.btnSelectBook.style.display = isToday ? 'inline-flex' : 'none';
+    }
+    if (!isToday) {
+      this.selectedBookId = null;
+      this.selectedBook = null;
+      this.focusedBookId = null;
+      this.activeWritingBookId = null;
+      this.hideMemoEditor();
+      if (this.btnCloseBook) {
+        this.btnCloseBook.style.display = 'none';
+      }
+    } else if (this.btnCloseBook) {
+      const showClose = this.activeWritingBookId && String(this.activeWritingBookId) === String(this.selectedBookId);
+      this.btnCloseBook.style.display = showClose ? 'inline-flex' : 'none';
+    }
+  }
+  /**
    * 날짜 표시 업데이트
    */
   updateDateDisplay() {
     if (this.currentDateEl) {
       const date = new Date(this.currentDate);
-      const formattedDate = date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        weekday: 'long',
-      });
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
       this.currentDateEl.textContent = formattedDate;
     }
   }
@@ -483,6 +477,8 @@ class FlowView {
     
     // api-client.js가 이미 response.data를 반환하므로 response 자체가 data임
     if (!response) {
+      this.memos = [];
+      this.renderMemoIndexList({});
       this.totalPages = 1;
       this.currentPage = 1;
       this.updatePagination();
@@ -503,8 +499,14 @@ class FlowView {
     
     // response가 이미 data 부분이므로 직접 사용
     const { memosByBook, memosByTag, totalMemoCount } = response;
+    this.lastMemoResponse = response;
+    
+    // 인덱스 리스트 렌더링 (전체 책 기준)
+    this.renderMemoIndexList(memosByBook || {});
+    const filteredMemosByBook = this.filterMemosByBook(memosByBook || {});
     
     if (totalMemoCount === 0) {
+      this.memos = [];
       this.totalPages = 1;
       this.currentPage = 1;
       this.updatePagination();
@@ -545,9 +547,9 @@ class FlowView {
       }
     } else if (this.currentGrouping === 'SESSION') {
       // SESSION 모드: memosByBook이 있고 비어있지 않으면 섹션별 렌더링
-      if (hasData(memosByBook)) {
+      if (hasData(filteredMemosByBook)) {
         console.log('[FlowView] renderMemos - 렌더링: renderMemosBySession');
-        this.renderMemosBySession(memosByBook);
+        this.renderMemosBySession(filteredMemosByBook);
       } else {
         // memosByBook이 없거나 비어있으면 빈 상태 표시
         console.warn('[FlowView] renderMemos - SESSION 모드인데 memosByBook이 없음');
@@ -555,9 +557,9 @@ class FlowView {
       }
     } else if (this.currentGrouping === 'BOOK') {
       // BOOK 모드: memosByBook이 있고 비어있지 않으면 책별 렌더링
-      if (hasData(memosByBook)) {
+      if (hasData(filteredMemosByBook)) {
         console.log('[FlowView] renderMemos - 렌더링: renderMemosByBook');
-        this.renderMemosByBook(memosByBook);
+        this.renderMemosByBook(filteredMemosByBook);
       } else {
         // memosByBook이 없거나 비어있으면 빈 상태 표시
         console.warn('[FlowView] renderMemos - BOOK 모드인데 memosByBook이 없음');
@@ -566,8 +568,8 @@ class FlowView {
     } else {
       // 알 수 없는 그룹화 방식: 기본값으로 BOOK 렌더링
       console.warn('[FlowView] renderMemos - 알 수 없는 그룹화 방식:', this.currentGrouping, ', 기본값으로 BOOK 렌더링');
-      if (hasData(memosByBook)) {
-        this.renderMemosByBook(memosByBook);
+      if (hasData(filteredMemosByBook)) {
+        this.renderMemosByBook(filteredMemosByBook);
       } else {
         this.showEmptyState();
       }
@@ -577,6 +579,162 @@ class FlowView {
     // 여기서는 restoreMemoEditor를 호출하지 않음
     
     this.hideEmptyState();
+  }
+
+  /**
+   * 책 인덱스 클릭 처리
+   * @param {Event} e - 클릭 이벤트
+   */
+  handleMemoIndexClick(e) {
+    const item = e.target.closest('.memo-index-bar-item');
+    if (!item) return;
+    
+    const bookId = item.dataset.bookId;
+    if (!bookId) return;
+    
+    this.setFocusedBook(bookId, { syncSelection: this.isTodayView });
+    
+    if (this.lastMemoResponse) {
+      this.renderMemos(this.lastMemoResponse);
+    }
+  }
+
+  /**
+   * 인덱스 선택 상태 업데이트
+   * @param {string|null} bookId - 선택된 책 ID
+   */
+  setFocusedBook(bookId, options = {}) {
+    const { syncSelection = true } = options;
+    this.focusedBookId = bookId;
+    
+    if (syncSelection && bookId) {
+      const bookData = this.bookIndexData.get(String(bookId));
+      if (bookData) {
+        this.selectedBookId = bookData.bookId;
+        this.selectedBook = {
+          ...this.selectedBook,
+          ...bookData
+        };
+      }
+    }
+    
+    if (this.btnCloseBook) {
+      const showClose = this.isTodayView && this.activeWritingBookId && String(this.activeWritingBookId) === String(this.selectedBookId);
+      this.btnCloseBook.style.display = showClose ? 'inline-flex' : 'none';
+    }
+  }
+
+  /**
+   * 인덱스 렌더링
+   * @param {Object} memosByBook - 책별 메모 그룹
+   */
+  renderMemoIndexList(memosByBook) {
+    this.bookIndexData = new Map();
+    const indexItems = [];
+    
+    Object.values(memosByBook || {}).forEach((group) => {
+      const bookId = group.bookId || group.userBookId;
+      if (!bookId) return;
+      let firstMemoTime = new Date(0);
+      if (group.memos && Array.isArray(group.memos) && group.memos.length > 0) {
+        firstMemoTime = group.memos.reduce((earliest, memo) => {
+          const current = new Date(memo.memoStartTime || memo.createdAt);
+          return current < earliest ? current : earliest;
+        }, new Date(group.memos[0].memoStartTime || group.memos[0].createdAt));
+      }
+      const key = String(bookId);
+      const existing = this.bookIndexData.get(key);
+      const earliestTime = existing?.firstMemoTime && existing.firstMemoTime < firstMemoTime
+        ? existing.firstMemoTime
+        : firstMemoTime;
+      this.bookIndexData.set(key, {
+        bookId: bookId,
+        title: group.bookTitle || '제목 없음',
+        totalPages: group.totalPages,
+        firstMemoTime: earliestTime
+      });
+    });
+    
+    if (this.selectedBookId && !this.bookIndexData.has(String(this.selectedBookId))) {
+      this.bookIndexData.set(String(this.selectedBookId), {
+        bookId: this.selectedBookId,
+        title: this.selectedBook?.title || '제목 없음',
+        totalPages: this.selectedBook?.totalPages,
+        firstMemoTime: new Date(0)
+      });
+    }
+    
+    this.bookIndexData.forEach((data, bookId) => {
+      const isActive = this.focusedBookId && String(this.focusedBookId) === String(bookId);
+      indexItems.push({
+        bookId,
+        title: data.title,
+        isActive,
+        firstMemoTime: data.firstMemoTime || new Date(0)
+      });
+    });
+    
+    indexItems.sort((a, b) => a.firstMemoTime - b.firstMemoTime);
+    
+    if ((!this.focusedBookId || !this.bookIndexData.has(String(this.focusedBookId))) && indexItems.length > 0) {
+      this.setFocusedBook(indexItems[0].bookId, { syncSelection: this.isTodayView });
+      indexItems.forEach((item) => {
+        item.isActive = String(item.bookId) === String(this.focusedBookId);
+      });
+    }
+    
+    if (!this.memoIndexBar || !this.memoIndexBarList) {
+      return;
+    }
+    
+    if (indexItems.length === 0) {
+      this.memoIndexBarList.innerHTML = '';
+      this.memoIndexBar.style.display = 'none';
+      return;
+    }
+    
+    this.memoIndexBarList.innerHTML = indexItems.map((item, index) => {
+      const paletteIndex = index % this.bookIndexPalette.length;
+      const color = this.bookIndexPalette[paletteIndex];
+      return `
+        <div class="memo-index-bar-item ${item.isActive ? 'active' : ''}" data-book-id="${item.bookId}" style="background-color: ${color}" title="${this.escapeHtml(item.title)}"></div>
+      `;
+    }).join('');
+    this.memoIndexBar.style.display = 'flex';
+  }
+
+  /**
+   * 책별 필터 적용
+   * @param {Object} memosByBook - 책별 메모 그룹
+   * @returns {Object}
+   */
+  filterMemosByBook(memosByBook) {
+    if (!this.focusedBookId) {
+      return memosByBook;
+    }
+    
+    const key = String(this.focusedBookId);
+    const filtered = {};
+    Object.entries(memosByBook || {}).forEach(([bookKey, group]) => {
+      const groupId = String(group.bookId || bookKey);
+      if (groupId === key) {
+        filtered[bookKey] = group;
+      }
+    });
+    return filtered;
+  }
+
+  /**
+   * 책별 인덱스 색상 반환
+   * @param {string|number} bookId
+   */
+  getBookIndexColor(bookId) {
+    const key = String(bookId);
+    if (!this.bookIndexColors.has(key)) {
+      const nextColor = this.bookIndexPalette[this.bookIndexColors.size % this.bookIndexPalette.length];
+      this.bookIndexColors.set(key, nextColor);
+    }
+    return this.bookIndexColors.get(key);
   }
 
 
@@ -970,6 +1128,10 @@ class FlowView {
    */
   insertMemoEditorIntoSection(sectionNode) {
     if (!this.memoEditor || !this.memoEditor.container || !sectionNode) return;
+    if (!this.activeWritingBookId || String(sectionNode.dataset.bookId) !== String(this.activeWritingBookId)) {
+      this.hideMemoEditor();
+      return;
+    }
 
     const memoGrid = sectionNode.querySelector('.memo-section-grid');
     if (!memoGrid) return;
@@ -997,6 +1159,9 @@ class FlowView {
    */
   createEmptyBookSectionWithEditor() {
     if (!this.selectedBook || !this.selectedBookId) return;
+    if (!this.activeWritingBookId || String(this.activeWritingBookId) !== String(this.selectedBookId)) {
+      return;
+    }
 
     const bookTitle = this.selectedBook.title || '제목 없음';
     const bookId = this.selectedBookId;
@@ -1026,7 +1191,7 @@ class FlowView {
     if (!this.memoEditor || !this.memoEditor.container) return;
     
     // 선택된 책이 있는 경우에만 메모 섹션 내부로 이동
-    if (this.selectedBookId) {
+    if (this.selectedBookId && this.activeWritingBookId && String(this.selectedBookId) === String(this.activeWritingBookId)) {
       // 선택된 책의 메모 섹션 찾기
       const selectedBookSection = Array.from(this.memoList.querySelectorAll('.memo-book-section')).find(
         section => section.dataset.bookId === String(this.selectedBookId)
@@ -1193,24 +1358,6 @@ class FlowView {
   }
 
   /**
-   * 인라인 캘린더 토글
-   */
-  async toggleInlineCalendar() {
-    this.isCalendarVisible = !this.isCalendarVisible;
-    
-    if (this.inlineCalendarSection) {
-      this.inlineCalendarSection.style.display = this.isCalendarVisible ? 'block' : 'none';
-    }
-    
-    if (this.isCalendarVisible) {
-      // 캘린더 표시 시 현재 년/월로 초기화
-      this.calendarYear = new Date().getFullYear();
-      this.calendarMonth = new Date().getMonth() + 1;
-      await this.renderInlineCalendar();
-    }
-  }
-
-  /**
    * 인라인 캘린더 렌더링
    */
   async renderInlineCalendar() {
@@ -1244,54 +1391,38 @@ class FlowView {
     const firstDay = new Date(this.calendarYear, this.calendarMonth - 1, 1);
     const lastDay = new Date(this.calendarYear, this.calendarMonth, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay(); // 0 (일요일) ~ 6 (토요일)
-
-    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     let html = `
       <div class="calendar-header">
         <button class="calendar-nav-btn prev">‹</button>
-        <div class="calendar-month-year">${this.calendarYear}년 ${monthNames[this.calendarMonth - 1]}</div>
+        <div class="calendar-month-year">${monthNames[this.calendarMonth - 1]}</div>
         <button class="calendar-nav-btn next">›</button>
       </div>
       <div class="calendar-grid">
     `;
 
-    // 요일 헤더
-    dayNames.forEach(day => {
-      html += `<div class="calendar-day-header">${day}</div>`;
-    });
-
-    // 빈 칸 (첫 날 이전)
-    for (let i = 0; i < startDayOfWeek; i++) {
-      html += '<div class="calendar-day other-month"></div>';
-    }
-
-    // 날짜 셀
+    // 날짜 셀 (2줄 x 16칸 고정)
     const today = new Date();
     const currentDateStr = this.currentDate;
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${this.calendarYear}-${String(this.calendarMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isToday = today.getFullYear() === this.calendarYear &&
-                     today.getMonth() + 1 === this.calendarMonth &&
-                     today.getDate() === day;
-      const hasMemo = this.calendarMemoDates.includes(dateStr);
-      const isSelected = dateStr === currentDateStr;
-      
-      let classes = 'calendar-day';
-      if (isToday) classes += ' today';
-      if (hasMemo) classes += ' has-memo';
-      if (isSelected) classes += ' selected';
-      
-      html += `<div class="${classes}" data-date="${dateStr}">${day}</div>`;
-    }
-
-    // 빈 칸 (마지막 날 이후)
-    const totalCells = startDayOfWeek + daysInMonth;
-    const remainingCells = 7 - (totalCells % 7);
-    if (remainingCells < 7) {
-      for (let i = 0; i < remainingCells; i++) {
+    const totalCells = 32;
+    for (let index = 0; index < totalCells; index++) {
+      const day = index + 1;
+      if (day <= daysInMonth) {
+        const dateStr = `${this.calendarYear}-${String(this.calendarMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = today.getFullYear() === this.calendarYear &&
+                       today.getMonth() + 1 === this.calendarMonth &&
+                       today.getDate() === day;
+        const hasMemo = this.calendarMemoDates.includes(dateStr);
+        const isSelected = dateStr === currentDateStr;
+        
+        let classes = 'calendar-day';
+        if (isToday) classes += ' today';
+        if (hasMemo) classes += ' has-memo';
+        if (isSelected) classes += ' selected';
+        
+        html += `<div class="${classes}" data-date="${dateStr}"></div>`;
+      } else {
         html += '<div class="calendar-day other-month"></div>';
       }
     }
@@ -1322,8 +1453,9 @@ class FlowView {
    */
   async handleCalendarDateClick(date) {
     const hasMemo = this.calendarMemoDates.includes(date);
+    const today = getTodayDateString();
     
-    if (hasMemo) {
+    if (hasMemo || date === today) {
       // 메모가 있는 날짜: 해당 날짜의 메모 로드
       await this.loadMemoFlow(date);
       // 캘린더 다시 렌더링하여 선택 상태 업데이트
@@ -1332,65 +1464,6 @@ class FlowView {
       // 메모가 없는 날짜: 안내 메시지
       alert('해당 날짜에 작성된 메모가 없습니다.');
     }
-  }
-
-  /**
-   * 그룹화 방식 변경
-   * @param {string} grouping - 그룹화 방식 (SESSION, BOOK, TAG)
-   */
-  handleGroupingChange(grouping) {
-    this.currentGrouping = grouping;
-    // 그룹화 방식 변경 시 첫 페이지로 리셋
-    this.currentPage = 1;
-    
-    // 그룹화 버튼 활성화 상태 업데이트
-    if (this.groupingToggle) {
-      this.groupingToggle.querySelectorAll('.grouping-btn').forEach((btn) => {
-        if (btn.dataset.grouping === grouping) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-    }
-    
-    // TAG 모드일 때만 태그 대분류 섹션 표시 (SESSION 모드에서는 숨김)
-    if (grouping === 'TAG') {
-      if (this.tagCategorySection) {
-        this.tagCategorySection.style.display = 'block';
-      }
-    } else {
-      if (this.tagCategorySection) {
-        this.tagCategorySection.style.display = 'none';
-      }
-    }
-    
-    // 메모 다시 로드 (그룹화 방식 명시적으로 전달하여 상태 일관성 보장)
-    this.loadMemoFlow(null, grouping);
-  }
-
-  /**
-   * 태그 대분류 변경
-   * @param {string} category - 태그 대분류 (TYPE, TOPIC)
-   */
-  handleTagCategoryChange(category) {
-    this.currentTagCategory = category;
-    // 태그 대분류 변경 시 첫 페이지로 리셋
-    this.currentPage = 1;
-    
-    // 태그 대분류 Tab 활성화 상태 업데이트
-    if (this.tagCategoryToggle) {
-      this.tagCategoryToggle.querySelectorAll('.tag-category-tab').forEach((tab) => {
-        if (tab.dataset.category === category) {
-          tab.classList.add('active');
-        } else {
-          tab.classList.remove('active');
-        }
-      });
-    }
-    
-    // 메모 다시 로드
-    this.loadMemoFlow();
   }
 
   /**
@@ -1412,16 +1485,11 @@ class FlowView {
   async handleBookSelect(book) {
     this.selectedBook = book;
     this.selectedBookId = book.userBookId;
+    this.activeWritingBookId = this.selectedBookId;
+    this.setFocusedBook(this.selectedBookId);
     
-    // 선택된 책 정보 표시
-    if (this.selectedBookInfo) {
-      this.selectedBookInfo.style.display = 'block';
-    }
-    if (this.selectedBookTitle) {
-      this.selectedBookTitle.textContent = book.title || '제목 없음';
-    }
-    if (this.selectedBookAuthor) {
-      this.selectedBookAuthor.textContent = book.author || '저자 정보 없음';
+    if (this.btnCloseBook) {
+      this.btnCloseBook.style.display = 'inline-flex';
     }
     
     // 메모 작성은 항상 오늘 날짜에서만 가능하므로 오늘 날짜로 전환
@@ -1434,6 +1502,12 @@ class FlowView {
     // 새 책 선택 시 마지막 페이지로 이동하여 메모 작성 UI 표시
     this.currentPage = 999; // 마지막 페이지로 이동하도록 표시
     await this.loadMemoFlow();
+    
+    // 책 선택 직후 메모 입력 칸 즉시 표시
+    this.restoreMemoEditor();
+    if (this.memoInputContainer) {
+      this.memoInputContainer.style.display = 'block';
+    }
   }
 
   /**
@@ -1826,18 +1900,12 @@ class FlowView {
     if (this.memoEditor && typeof this.memoEditor.destroy === 'function') {
       this.memoEditor.destroy();
     }
-    if (this.calendarModal && typeof this.calendarModal.destroy === 'function') {
-      this.calendarModal.destroy();
-    }
-    
     // 참조 정리
-    this.handleCalendarClick = null;
     this.handleInlineCalendarClick = null;
-    this.handleGroupingToggleClick = null;
-    this.handleTagCategoryToggleClick = null;
     this.handleSelectBookClick = null;
     this.handleHomeClick = null;
     this.handleMemoListClick = null;
+    this.handleMemoIndexClick = null;
   }
 
   /**
@@ -2070,19 +2138,34 @@ class FlowView {
       return;
     }
     
-    const totalPages = this.selectedBook.totalPages || 0;
+    let totalPages = this.selectedBook.totalPages || 0;
     if (totalPages > 0 && lastReadPage > totalPages) {
       alert(`페이지 수는 전체 페이지 수(${totalPages}페이지)를 초과할 수 없습니다.`);
       return;
     }
     
+    // totalPages가 없으면 서버에서 최신 정보 조회
+    if (!totalPages || totalPages < 1) {
+      try {
+        const latestBook = await bookService.getUserBookDetail(this.selectedBookId);
+        if (latestBook && latestBook.totalPages) {
+          this.selectedBook.totalPages = latestBook.totalPages;
+          totalPages = latestBook.totalPages;
+        }
+      } catch (error) {
+        console.warn('[FlowView] totalPages 조회 실패 (fallback 유지):', error);
+      }
+    }
+    
     // 진행률이 100%인 경우 Finished 필드 검증
     const isFinished = totalPages > 0 && lastReadPage >= totalPages;
     if (isFinished) {
-      const finishedDate = this.closeBookFinishedDate?.value;
+      let finishedDate = this.closeBookFinishedDate?.value;
       if (!finishedDate) {
-        alert('독서 종료일을 입력해주세요.');
-        return;
+        finishedDate = getTodayDateString();
+        if (this.closeBookFinishedDate) {
+          this.closeBookFinishedDate.value = finishedDate;
+        }
       }
       
       const rating = parseInt(this.closeBookRating?.value) || 0;
@@ -2099,11 +2182,11 @@ class FlowView {
       };
       
       // Finished 카테고리로 변경될 경우 추가 필드 포함
-      if (isFinished) {
-        requestData.readingFinishedDate = this.closeBookFinishedDate?.value;
-        requestData.rating = parseInt(this.closeBookRating?.value) || 0;
-        requestData.review = this.closeBookReview?.value || null;
-      }
+    if (isFinished) {
+      requestData.readingFinishedDate = this.closeBookFinishedDate?.value || getTodayDateString();
+      requestData.rating = parseInt(this.closeBookRating?.value) || 0;
+      requestData.review = this.closeBookReview?.value || null;
+    }
       
       // API 호출
       await memoService.closeBook(this.selectedBookId, requestData);
@@ -2117,10 +2200,10 @@ class FlowView {
       // 선택된 책 초기화
       this.selectedBook = null;
       this.selectedBookId = null;
+      this.activeWritingBookId = null;
       
-      // 선택된 책 정보 숨김
-      if (this.selectedBookInfo) {
-        this.selectedBookInfo.style.display = 'none';
+      if (this.btnCloseBook) {
+        this.btnCloseBook.style.display = 'none';
       }
       
       // 메모 에디터 숨김

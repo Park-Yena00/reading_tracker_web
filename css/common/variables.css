@@ -1,42 +1,46 @@
 /* CSS 변수 정의 - 색상, 폰트, 간격 등 */
 
 :root {
-  /* 색상 팔레트 */
+  /* 색상 팔레트 (Fig 톤 기반) */
+  --color-fig-purple: #5A2C3E;
+  --color-fig-rose: #56878C;
+  --color-fig-green: #9CBC8F;
+  
   /* Primary (주요 색상) */
-  --color-primary: #3B82F6;
-  --color-primary-hover: #2563EB;
-  --color-primary-light: #60A5FA;
-  --color-primary-bg: rgba(59, 130, 246, 0.1);
-  --color-primary-alpha: rgba(59, 130, 246, 0.1);
+  --color-primary: #56878C;
+  --color-primary-hover: #4C787C;
+  --color-primary-light: #7FA6AA;
+  --color-primary-bg: rgba(86, 135, 140, 0.12);
+  --color-primary-alpha: rgba(86, 135, 140, 0.12);
   
   /* Secondary (보조 색상) */
-  --color-secondary: #6B7280;
-  --color-secondary-hover: #4B5563;
-  --color-secondary-light: #9CA3AF;
+  --color-secondary: #5A2C3E;
+  --color-secondary-hover: #4A2232;
+  --color-secondary-light: #7B5161;
   
-  /* 상태 색상 */
-  --color-success: #10B981;
-  --color-danger: #EF4444;
-  --color-warning: #F59E0B;
-  --color-info: #3B82F6;
-  --color-error: #EF4444;
+  /* 상태 색상 (팔레트 파생) */
+  --color-success: #6E9E8F;
+  --color-danger: #8B3E52;
+  --color-warning: #B38B7A;
+  --color-info: #56878C;
+  --color-error: #8B3E52;
   
   /* 텍스트 색상 */
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
-  --color-text-white: #FFFFFF;
+  --color-text-primary: #2B161F;
+  --color-text-secondary: #6B4B5A;
+  --color-text-muted: #8C7A83;
+  --color-text-white: #F8F6F7;
   
   /* 배경 색상 */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F9FAFB;
-  --color-bg-muted: #F3F4F6;
-  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  --color-bg-primary: #F8F6F7;
+  --color-bg-secondary: #F1F4F1;
+  --color-bg-muted: #E8ECEA;
+  --color-bg-overlay: rgba(43, 22, 31, 0.5);
   
   /* 테두리 색상 */
-  --color-border-default: #D1D5DB;
-  --color-border-focus: #3B82F6;
-  --color-border-error: #EF4444;
+  --color-border-default: #C9D3CD;
+  --color-border-focus: #56878C;
+  --color-border-error: #8B3E52;
   
   /* 폰트 패밀리 */
   --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;

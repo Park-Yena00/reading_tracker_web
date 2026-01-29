@@ -105,6 +105,9 @@ class BookshelfView {
    * 서재 로드 (카테고리 목록 추출 및 첫 번째 카테고리 선택)
    */
   async loadBookshelf() {
+    const loadStartTime = Date.now();
+    console.log('[BookshelfView] loadBookshelf 시작:', new Date().toISOString());
+    
     this.setLoading(true);
     this.hideEmptyState();
     
@@ -113,6 +116,16 @@ class BookshelfView {
       const response = await bookService.getBookshelf({
         sortBy: this.currentSortBy,
       });
+      
+      const loadEndTime = Date.now();
+      console.log('[BookshelfView] loadBookshelf 완료:', loadEndTime - loadStartTime, 'ms');
+      console.log('[BookshelfView] 반환된 책 수:', response.books?.length);
+      console.log('[BookshelfView] 카테고리별 책 수:', 
+        response.books?.reduce((acc, book) => {
+          acc[book.category] = (acc[book.category] || 0) + 1;
+          return acc;
+        }, {})
+      );
       
       this.allBooks = response.books || [];
       
@@ -141,7 +154,9 @@ class BookshelfView {
         this.showEmptyState(null);
       }
     } catch (error) {
-      console.error('서재 로드 오류:', error);
+      const loadEndTime = Date.now();
+      console.error('[BookshelfView] 서재 로드 오류:', error);
+      console.error('[BookshelfView] loadBookshelf 실패 시간:', loadEndTime - loadStartTime, 'ms');
       // 에러 발생 시에도 빈 상태 표시 (사용자에게 도서 검색 유도)
       this.extractCategories();
       this.renderCategorySidebar();

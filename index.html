@@ -28,50 +28,31 @@
             <section class="hero-section">
                 <div class="container">
                     <div class="hero-content">
-                        <h1 class="hero-title">Reading Tracker</h1>
-                        <p class="hero-subtitle">병렬 독서자를 위한 독서 기록 서비스</p>
-                        <p class="hero-description">
-                            여러 책을 동시에 읽어도 괜찮습니다.<br>
-                            독서 기록을 체계적으로 관리하고, 통계를 확인해보세요.
-                        </p>
+                        <h1 class="hero-title">이 리 저 리</h1>
+                        <p class="hero-subtitle">한 번에 여러 권의 생각을 정리하세요.</p>
                         <div class="hero-actions">
-                            <a href="html/book-search.html" class="btn btn-primary btn-large">도서 검색 시작하기</a>
+                            <a href="html/book-search.html" class="btn btn-primary btn-large">책 살펴보기</a>
                         </div>
                     </div>
                 </div>
             </section>
             
-            <!-- 기능 소개 섹션 -->
-            <section class="features-section">
+            <!-- 통계 대시보드 섹션 -->
+            <section class="stats-dashboard-section">
                 <div class="container">
-                    <h2 class="section-title">주요 기능</h2>
-                    <div class="features-grid grid grid-cols-3">
-                        <div class="feature-card card">
-                            <div class="feature-icon">🔍</div>
-                            <h3 class="feature-title">도서 검색</h3>
-                            <p class="feature-description">
-                                알라딘 API를 통해 다양한 도서를 검색하고, 
-                                상세 정보를 확인할 수 있습니다.
-                            </p>
+                    <div class="stats-tabs">
+                        <button class="stats-tab-btn active" data-tab="daily">일별 통계</button>
+                        <button class="stats-tab-btn" data-tab="monthly">월별 통계</button>
+                        <button class="stats-tab-btn" data-tab="yearly">연별 통계</button>
+                    </div>
+                    
+                    <div id="stats-content" class="stats-content">
+                        <!-- 통계 내용이 동적으로 로드됩니다 -->
+                        <div id="stats-loading" class="stats-loading" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>통계 데이터를 불러오는 중...</p>
                         </div>
-                        
-                        <div class="feature-card card">
-                            <div class="feature-icon">📚</div>
-                            <h3 class="feature-title">서재 관리</h3>
-                            <p class="feature-description">
-                                읽고 있는 책, 읽은 책, 읽고 싶은 책을 
-                                카테고리별로 관리할 수 있습니다.
-                            </p>
-                        </div>
-                        
-                        <div class="feature-card card">
-                            <div class="feature-icon">📝</div>
-                            <h3 class="feature-title">독서 메모</h3>
-                            <p class="feature-description">
-                                책을 읽으며 느낀 점이나 중요 내용을 
-                                메모로 기록하고 관리할 수 있습니다.
-                            </p>
-                        </div>
+                        <div id="stats-display" class="stats-display"></div>
                     </div>
                 </div>
             </section>
@@ -99,10 +80,14 @@
     <script type="module">
         import { HeaderView } from './js/views/common/header.js';
         import { FooterView } from './js/views/common/footer.js';
+        import { HomeView } from './js/views/pages/home-view.js';
         
         // 헤더와 푸터 렌더링
         new HeaderView('header');
         new FooterView('footer');
+        
+        // 홈 뷰 초기화
+        new HomeView();
     </script>
 </body>
 </html>
